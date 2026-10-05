@@ -8,9 +8,11 @@
 #                                --without-json --without-curses
 #   => libcob.so depends only on libgmp + libc, easy to ship in lib/.
 #
-# Env overrides:  COBC=/path/to/cobc GCC=gcc-10 (or CC=gcc-10 / COB_CC=gcc-10)
-#                 COBOL_HOME=/opt/gnucobol-3.1.2  (uses $COBOL_HOME/bin/cobc)
-#                 example: GCC=gcc-13 perl builder.pl [clean]
+# Env overrides: COBC=/path/to/cobc GCC=gcc-10 (or CC=gcc-10 / COB_CC=gcc-10)
+#                COBOL_HOME=/opt/gnucobol-3.1.2  (uses $COBOL_HOME/bin/cobc)
+#                example:
+#                 COBOL_HOME=/opt/gnucobol-3.1.2 GCC=gcc-13 perl builder.pl
+#                 GCC=gcc-13 perl builder.pl [clean]
 #
 # Usage:          perl builder.pl [clean]
 use strict;
@@ -20,14 +22,18 @@ use File::Basename qw(dirname basename);
 use File::Copy     qw(copy);
 use File::Path     qw(make_path);
 
-my $root = abs_path( dirname(__FILE__) . '/..' );
-my $src  = "$root/cobol/src/ledger.cob";
-my $bin  = "$root/bin";
-my $lib  = "$root/lib";
-my $exe  = "$bin/legacy_app";
+# --- paths -----------------------------------------------------------
+my $root  = abs_path( dirname(__FILE__) . '/..' );
+my $src   = "$root/cobol/src/ledger.cob";
+my $store = "$root/data/store/cobol";
+my $bin   = "$root/bin";
+my $lib   = "$root/lib";
+my $exe   = "$bin/legacy_app";
 
+# --- helper ----------------------------------------------------------
 sub die_msg { print STDERR "builder: @_\n"; exit 1 }
 
+# --- clean -----------------------------------------------------------
 if ( @ARGV && $ARGV[0] eq 'clean' ) {
     unlink $exe;
     unlink glob("$lib/lib*.so*");
@@ -36,7 +42,7 @@ if ( @ARGV && $ARGV[0] eq 'clean' ) {
 }
 
 # --- configure C compiler environment---------------------------------
-$ENV{COB_CC} =$ENV{GCC} // $ENV{CC} //$ENV{COB_CC};
+$ENV{COB_CC} = $ENV{GCC} // $ENV{CC} // $ENV{COB_CC};
 
 # --- locate cobc -----------------------------------------------------
 my $cobc = $ENV{COBC};
@@ -59,7 +65,7 @@ print "builder: C compiler = ",
   "\n";
 
 die_msg("source not found: $src") unless -f $src;
-make_path( $bin, $lib );
+make_path( $bin, $lib, $store );
 
 # --- compile ---------------------------------------------------------
 # -Q passes the linker option: the executable finds ../lib at run time,
@@ -108,3 +114,4 @@ for my $need (qw(libcob libgmp)) {
       unless index( $got, "$lib/" ) == 0;
 }
 print "builder: OK -> $exe\n";
+print "builder: TIP -> Run from bin/:  cd bin && ./legacy_app\n";

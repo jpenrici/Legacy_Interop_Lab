@@ -60,7 +60,7 @@ use FindBin qw($RealBin);
 use lib $RealBin;
 use Getopt::Long qw(GetOptionsFromArray);
 use Pod::Usage;
-use Cwd qw(abs_path);
+use Cwd       qw(abs_path);
 use LegacyDev qw(
   info warnx fatal step can_run gcc_major os_release apt_ensure pkg_missing
   priv_describe
@@ -68,10 +68,11 @@ use LegacyDev qw(
 
 # ---------------------------------------------------------------- data
 
-my $COBOL_CC = 'gcc-13';    # compiler cobc calls
-my $BRIDGE_MIN_GCC = 14;    # bridge/CMakeLists.txt requirement
+my $COBOL_CC       = 'gcc-13';    # compiler cobc calls
+my $BRIDGE_MIN_GCC = 14;          # bridge/CMakeLists.txt requirement
 
-my @COBOL_PKGS  = qw(gcc-13 build-essential libgmp-dev curl xz-utils gnupg ca-certificates);
+my @COBOL_PKGS =
+  qw(gcc-13 build-essential libgmp-dev curl xz-utils gnupg ca-certificates);
 my @BRIDGE_PKGS = qw(gcc-14 cmake);
 
 my $INSTALLER = "$RealBin/gnucobol_install.pl";
@@ -93,19 +94,29 @@ sub main {
     pod2usage( -exitval => 0, -verbose => 1 ) if $opt{help};
 
     my $cmd = @args ? shift @args : 'install';
-    pod2usage( -exitval => 2, -verbose => 0, -message => "unexpected arguments: @args" ) if @args;
-    pod2usage( -exitval => 2, -verbose => 0, -message => "unknown command: $cmd" )
-      unless $cmd =~ /^(install|status|uninstall)$/;
+    pod2usage(
+        -exitval => 2,
+        -verbose => 0,
+        -message => "unexpected arguments: @args"
+    ) if @args;
+    pod2usage(
+        -exitval => 2,
+        -verbose => 0,
+        -message => "unknown command: $cmd"
+    ) unless $cmd =~ /^(install|status|uninstall)$/;
 
-    @versions = ('3.2') unless @versions;
+    @versions              = ('3.2') unless @versions;
     $LegacyDev::ASSUME_YES = 1 if $opt{yes};
     $opt{priv} //= 'auto';
-    pod2usage( -exitval => 2, -verbose => 0, -message => "invalid --priv: $opt{priv}" )
-      unless $opt{priv} =~ /^(auto|sudo|su|print)$/;
+    pod2usage(
+        -exitval => 2,
+        -verbose => 0,
+        -message => "invalid --priv: $opt{priv}"
+    ) unless $opt{priv} =~ /^(auto|sudo|su|print)$/;
     $LegacyDev::PRIV_REQUEST = $opt{priv};
-    $PRIV = $opt{priv};
+    $PRIV                    = $opt{priv};
 
-    return cmd_status()                 if $cmd eq 'status';
+    return cmd_status()                       if $cmd eq 'status';
     return cmd_install( \%opt, \@versions )   if $cmd eq 'install';
     return cmd_uninstall( \%opt, \@versions ) if $cmd eq 'uninstall';
 }
@@ -139,7 +150,9 @@ sub check_platform {
         info('platform: Debian 13');
     }
     else {
-        warnx("platform is $id $ver, the target is Debian 13; continuing, packages may differ");
+        warnx(
+"platform is $id $ver, the target is Debian 13; continuing, packages may differ"
+        );
     }
 }
 
@@ -161,7 +174,9 @@ sub cmd_install {
     fatal("$COBOL_CC reports GCC $major, expected 13") unless $major == 13;
     info("COBOL side : $COBOL_CC (GCC $major)");
     my ( $bcc, $bmajor ) = bridge_compiler();
-    $bcc or fatal("no GCC >= $BRIDGE_MIN_GCC found for the bridge (apt install gcc-14)");
+    $bcc
+      or fatal(
+        "no GCC >= $BRIDGE_MIN_GCC found for the bridge (apt install gcc-14)");
     info("C bridge   : $bcc (GCC $bmajor)");
     can_run('cmake') or fatal('cmake not found');
     can_run('perl')  or fatal('perl not found');
@@ -209,13 +224,17 @@ sub cmd_status {
     info('compilers and tools:');
     for my $cc ( $COBOL_CC, qw(gcc-14 gcc) ) {
         my $v = gcc_major($cc);
-        info( sprintf( '  %-7s %s', $cc, defined $v ? "GCC $v" : 'not found' ) );
+        info(
+            sprintf( '  %-7s %s', $cc, defined $v ? "GCC $v" : 'not found' ) );
     }
     for my $t (qw(cmake sudo)) {
         info( sprintf( '  %-7s %s', $t, can_run($t) ? 'found' : 'not found' ) );
     }
-    my @missing = can_run('dpkg-query') ? pkg_missing( @COBOL_PKGS, @BRIDGE_PKGS ) : ();
-    info( @missing ? "  missing apt packages: @missing" : '  all required apt packages are installed' );
+    my @missing =
+      can_run('dpkg-query') ? pkg_missing( @COBOL_PKGS, @BRIDGE_PKGS ) : ();
+    info( @missing
+        ? "  missing apt packages: @missing"
+        : '  all required apt packages are installed' );
     print "\n";
     installer('status');
     return 0;
@@ -229,10 +248,12 @@ sub cmd_uninstall {
         my @a = ( 'uninstall', '--version', $v );
         push @a, '--yes' if $opt->{yes};
         my $rc = installer(@a);
-        return 3 if $rc == 3;
+        return 3                                 if $rc == 3;
         fatal("uninstall of GnuCOBOL $v failed") if $rc != 0;
     }
-    info('apt packages (gcc-13, gcc-14, cmake, ...) were left installed on purpose');
+    info(
+'apt packages (gcc-13, gcc-14, cmake, ...) were left installed on purpose'
+    );
     return 0;
 }
 

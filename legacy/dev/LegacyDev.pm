@@ -16,7 +16,7 @@ use strict;
 use warnings;
 use Exporter 'import';
 use Digest::SHA ();
-use File::Find ();
+use File::Find  ();
 
 our @EXPORT_OK = qw(
   info warnx fatal step
@@ -53,15 +53,16 @@ sub step {
 sub _describe_status {
     my ($st) = @_;
     return 'could not be started: ' . ( $! || 'unknown error' ) if $st == -1;
-    return 'killed by signal ' . ( $st & 127 )                  if $st & 127;
-    return 'exit status ' . ( $st >> 8 );
+    return 'killed by signal ' .      ( $st & 127 )             if $st & 127;
+    return 'exit status ' .           ( $st >> 8 );
 }
 
 # Runs a command (list form). Dies (exit 1) on failure.
 sub run {
     my @cmd = @_;
     info( '$ ' . join( ' ', @cmd ) );
-    system(@cmd) == 0 or fatal( "command failed (" . _describe_status($?) . "): @cmd" );
+    system(@cmd) == 0
+      or fatal( "command failed (" . _describe_status($?) . "): @cmd" );
     return 1;
 }
 
@@ -75,10 +76,13 @@ sub run_logged {
         close $fh;
     }
     local $ENV{LEGACY_LOG} = $log;
-    my $rc = system( '/bin/sh', '-c', 'exec "$@" >>"$LEGACY_LOG" 2>&1', 'sh', @cmd );
+    my $rc =
+      system( '/bin/sh', '-c', 'exec "$@" >>"$LEGACY_LOG" 2>&1', 'sh', @cmd );
     return 1 if $rc == 0;
     _show_tail( $log, 25 );
-    fatal( "command failed (" . _describe_status($?) . "): @cmd\n[legacy] full log: $log" );
+    fatal(  "command failed ("
+          . _describe_status($?)
+          . "): @cmd\n[legacy] full log: $log" );
 }
 
 sub _show_tail {
@@ -98,7 +102,8 @@ sub capture_status {
     my $out = <$fh>;
     $out //= '';
     close $fh;
-    return ( $? == -1 ? -1 : ( $? & 127 ? 128 + ( $? & 127 ) : $? >> 8 ), $out );
+    return ( $? == -1 ? -1 : ( $? & 127 ? 128 + ( $? & 127 ) : $? >> 8 ),
+        $out );
 }
 
 # Returns stdout; dies if the command fails.
@@ -177,7 +182,7 @@ sub shell_quote {
 sub _quiet_status {
     my @cmd = @_;
     open( my $old, '>&', \*STDERR ) or return -1;
-    open( STDERR, '>', '/dev/null' );
+    open( STDERR,  '>',  '/dev/null' );
     my $rc = system(@cmd);
     open( STDERR, '>&', $old );
     close $old;
@@ -207,7 +212,8 @@ sub priv_method {
     my $req = $PRIV_REQUEST;
     if ( is_root() ) { return $_method = 'root' }
     if ( $req eq 'sudo' ) {
-        can_run('sudo') or fatal('--priv sudo requested but sudo is not installed');
+        can_run('sudo')
+          or fatal('--priv sudo requested but sudo is not installed');
         return $_method = 'sudo';
     }
     if ( $req eq 'su' ) {
@@ -225,7 +231,8 @@ sub priv_describe {
         root  => 'root (privileged commands run directly)',
         sudo  => 'sudo (your password may be asked)',
         su    => 'su (the root password will be asked)',
-        print => 'no automatic method - privileged commands will be printed for you to run as root',
+        print =>
+'no automatic method - privileged commands will be printed for you to run as root',
     );
     return $text{ priv_method() };
 }
@@ -241,16 +248,18 @@ sub _su_script {
         $c[0] = $abs;
         push @parts, join( ' ', map { shell_quote($_) } @c );
     }
-    return 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; export PATH; '
+    return
+'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; export PATH; '
       . join( ' && ', @parts );
 }
 
 sub _printable {
     my ($c) = @_;
-    my @c = @$c;
+    my @c   = @$c;
     my $abs = can_run( $c[0] );
     $c[0] = $abs if $abs;
-    return join( ' ', map { $_ =~ m{^[A-Za-z0-9_@%+=:,./-]+$} ? $_ : shell_quote($_) } @c );
+    return join( ' ',
+        map { $_ =~ m{^[A-Za-z0-9_@%+=:,./-]+$} ? $_ : shell_quote($_) } @c );
 }
 
 # Runs a batch of commands with root privileges.
@@ -275,15 +284,18 @@ sub priv_batch {
     if ( $method eq 'su' ) {
         info("using su for: $a{why}");
         info( 'as root, will run: ' . _printable($_) ) for @cmds;
-        my $rc = system( 'su', '-s', '/bin/sh', '-c', _su_script(@cmds), 'root' );
-        fatal( 'su failed (' . _describe_status($?) . ') - wrong password or su not allowed' )
+        my $rc =
+          system( 'su', '-s', '/bin/sh', '-c', _su_script(@cmds), 'root' );
+        fatal(  'su failed ('
+              . _describe_status($?)
+              . ') - wrong password or su not allowed' )
           if $rc != 0;
         return 'done';
     }
 
     # print: manual hand-off
     print STDOUT "\n[legacy] Root privileges are needed ($a{why}).\n",
-      "[legacy] No automatic method is available. Run as root (for example in another\n",
+"[legacy] No automatic method is available. Run as root (for example in another\n",
       "[legacy] terminal, after 'su -'):\n\n";
     print STDOUT '    ', _printable($_), "\n" for @cmds;
     print STDOUT "\n";
@@ -301,8 +313,9 @@ sub priv_batch {
 # Single privileged command.
 sub priv {
     my @cmd = @_;
-    my $r = priv_batch( why => $cmd[0], cmds => [ \@cmd ] );
-    fatal("privileged command not executed (run it as root): @cmd") if $r eq 'pending';
+    my $r   = priv_batch( why => $cmd[0], cmds => [ \@cmd ] );
+    fatal("privileged command not executed (run it as root): @cmd")
+      if $r eq 'pending';
     return 1;
 }
 
@@ -311,7 +324,8 @@ sub priv {
 sub confirm {
     my ($question) = @_;
     return 1 if $ASSUME_YES;
-    fatal("\"$question\" needs an answer but stdin is not a terminal; use --yes")
+    fatal(
+        "\"$question\" needs an answer but stdin is not a terminal; use --yes")
       unless -t STDIN;
     while (1) {
         print STDOUT "[legacy] $question [y/N] ";
@@ -361,7 +375,8 @@ sub pkg_missing {
     my @pkgs = @_;
     my @missing;
     for my $p (@pkgs) {
-        my ( $rc, $out ) = capture_status( 'dpkg-query', '-W', '-f=${db:Status-Status}', $p );
+        my ( $rc, $out ) =
+          capture_status( 'dpkg-query', '-W', '-f=${db:Status-Status}', $p );
         push @missing, $p unless $rc == 0 && $out eq 'installed';
     }
     return @missing;
@@ -372,17 +387,23 @@ sub pkg_missing {
 sub apt_ensure {
     my @want = @_;
     can_run('dpkg-query') && can_run('apt-get')
-      or fatal("apt/dpkg not available on this system; install manually: @want");
+      or
+      fatal("apt/dpkg not available on this system; install manually: @want");
     my @missing = pkg_missing(@want);
     return 1 unless @missing;
     info("missing packages: @missing");
-    confirm('Install them with apt-get?') or fatal('aborted: required packages are missing');
+    confirm('Install them with apt-get?')
+      or fatal('aborted: required packages are missing');
     my $r = priv_batch(
         why  => 'install packages: ' . join( ' ', @missing ),
         cmds => [
             [ 'apt-get', 'update' ],
-            [ 'env', 'DEBIAN_FRONTEND=noninteractive',
-              'apt-get', 'install', '-y', '--no-install-recommends', @missing ],
+            [
+                'env',     'DEBIAN_FRONTEND=noninteractive',
+                'apt-get', 'install',
+                '-y',      '--no-install-recommends',
+                @missing
+            ],
         ],
         check => sub { my @m = pkg_missing(@missing); return !@m },
     );
