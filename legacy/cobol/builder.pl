@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# cobol/builder.pl - builds legacy/bin/legacy_app from cobol/src/ledger.cob
+# legacy/cobol/builder.pl - builds legacy/bin/legacy_app from cobol/src/ledger.cob
 #
 # Toolchain (recommended, "simulated period"):
 #   GnuCOBOL 3.1.2 (Dec 2020) or 3.2 (Jul 2023), built with GCC 10..13

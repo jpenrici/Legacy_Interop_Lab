@@ -1,4 +1,6 @@
 /*
+ * legacy/bridge/include/api.h
+ *
  * api.h - C bridge to the COBOL ledger (legacy_app)
  *
  * Plain C ABI, flat structs, fixed-size types: easy to call through FFI

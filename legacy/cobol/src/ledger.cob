@@ -1,6 +1,8 @@
        IDENTIFICATION DIVISION.
        PROGRAM-ID. LEDGER.
       *----------------------------------------------------------------
+      * legacy/cobol/src/ledger.cob
+      *
       * LEDGER - MONTHLY GENERAL LEDGER WITH YEARLY CLOSING (USD)
       *
       * INPUT  : ../data/input/cobol/cb_data.csv   (LINE SEQUENTIAL)

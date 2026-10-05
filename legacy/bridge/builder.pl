@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# bridge/builder.pl - builds legacy/lib/lib_c_api.so and legacy/bin/c_api_test
+# legacy/bridge/builder.pl - builds legacy/lib/lib_c_api.so and legacy/bin/c_api_test
 #
 # Requires: legacy/bin/legacy_app (run cobol/builder.pl first),
 #           CMake >= 3.16 and GCC >= 14 (CC=/path/to/gcc-14 to choose one).
