@@ -1,15 +1,17 @@
 #!/usr/bin/env perl
 # cobol/builder.pl - builds legacy/bin/legacy_app from cobol/src/ledger.cob
 #
-# Toolchain (recommended, "period correct"):
+# Toolchain (recommended, "simulated period"):
 #   GnuCOBOL 3.1.2 (Dec 2020) or 3.2 (Jul 2023), built with GCC 10..13
 #   (see dev/gnucobol_install.pl and dev/prepare_legacy_env.pl)
 #   GnuCOBOL configured minimal: --without-db --without-xml2
 #                                --without-json --without-curses
 #   => libcob.so depends only on libgmp + libc, easy to ship in lib/.
 #
-# Env overrides:  COBC=/path/to/cobc   COB_CC=gcc-10
+# Env overrides:  COBC=/path/to/cobc GCC=gcc-10 (or CC=gcc-10 / COB_CC=gcc-10)
 #                 COBOL_HOME=/opt/gnucobol-3.1.2  (uses $COBOL_HOME/bin/cobc)
+#                 example: GCC=gcc-13 perl builder.pl [clean]
+#
 # Usage:          perl builder.pl [clean]
 use strict;
 use warnings;
@@ -28,10 +30,13 @@ sub die_msg { print STDERR "builder: @_\n"; exit 1 }
 
 if ( @ARGV && $ARGV[0] eq 'clean' ) {
     unlink $exe;
-    unlink glob("$lib/libcob.so* $lib/libgmp.so*");
+    unlink glob("$lib/lib*.so*");
     print "builder: cleaned\n";
     exit 0;
 }
+
+# --- configure C compiler environment---------------------------------
+$ENV{COB_CC} =$ENV{GCC} // $ENV{CC} //$ENV{COB_CC};
 
 # --- locate cobc -----------------------------------------------------
 my $cobc = $ENV{COBC};

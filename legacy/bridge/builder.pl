@@ -6,17 +6,18 @@
 # Usage:    perl builder.pl [build|test|clean]     (default: build + test)
 use strict;
 use warnings;
-use Cwd qw(abs_path);
+use Cwd            qw(abs_path);
 use File::Basename qw(dirname);
-use File::Temp qw(tempdir);
+use File::Temp     qw(tempdir);
 
 my $here = abs_path( dirname(__FILE__) );
 my $root = abs_path("$here/..");
 my $mode = shift // 'all';
-die "usage: builder.pl [build|test|clean]\n" unless $mode =~ /^(all|build|test|clean)$/;
+die "usage: builder.pl [build|test|clean]\n"
+  unless $mode =~ /^(all|build|test|clean)$/;
 
 sub fail { print STDERR "builder: @_\n"; exit 1 }
-sub run  { print "builder: @_\n"; system(@_) == 0 or fail("failed: @_") }
+sub run  { print "builder: @_\n";        system(@_) == 0 or fail("failed: @_") }
 
 if ( $mode eq 'clean' ) {
     unlink "$root/bin/c_api_test", "$root/lib/lib_c_api.so";
@@ -29,6 +30,7 @@ fail("bin/legacy_app not found - run: perl cobol/builder.pl")
   unless -x "$root/bin/legacy_app";
 
 if ( $mode ne 'test' ) {
+
     # 2. tools and GCC >= 14
     my ($cmake) = grep { -x $_ } map { "$_/cmake" } split /:/, $ENV{PATH} // '';
     fail("cmake not found") unless $cmake;

@@ -17,41 +17,41 @@
 
 static int g_checks, g_failed;
 
-#define CHECK(cond, msg)                                                  \
-    do {                                                                  \
-        g_checks++;                                                       \
-        if (!(cond)) {                                                    \
-            g_failed++;                                                   \
-            printf("  FAIL %s:%d  %s\n", __FILE__, __LINE__, (msg));      \
-        }                                                                 \
+#define CHECK(cond, msg)                                             \
+    do {                                                             \
+        g_checks++;                                                  \
+        if (!(cond)) {                                               \
+            g_failed++;                                              \
+            printf("  FAIL %s:%d  %s\n", __FILE__, __LINE__, (msg)); \
+        }                                                            \
     } while (0)
 
 #define MAXREC 64
 
-static void write_file(const char *path, const char *text)
+static void write_file(const char* path, const char* text)
 {
-    FILE *f = fopen(path, "w");
+    FILE* f = fopen(path, "w");
     if (f) {
         fputs(text, f);
         fclose(f);
     }
 }
 
-static void print_report(const lg_record *r, size_t n, const lg_summary *s)
+static void print_report(const lg_record* r, size_t n, const lg_summary* s)
 {
     char d[32], c[32], b[32], u[32];
     printf("  K %-7s %14s %14s %14s %14s %4s\n", "period", "debit", "credit",
-           "balance", "cumulative", "n");
+        "balance", "cumulative", "n");
     for (size_t i = 0; i < n; i++) {
         lg_format_cents(r[i].debit_cents, d, sizeof d);
         lg_format_cents(r[i].credit_cents, c, sizeof c);
         lg_format_cents(r[i].balance_cents, b, sizeof b);
         lg_format_cents(r[i].cumulative_cents, u, sizeof u);
         printf("  %c %04d-%02d %14s %14s %14s %14s %4d\n", r[i].kind,
-               r[i].year, r[i].month, d, c, b, u, r[i].entries);
+            r[i].year, r[i].month, d, c, b, u, r[i].entries);
     }
     printf("  read=%d accepted=%d rejected=%d\n", s->lines_read,
-           s->lines_accepted, s->lines_rejected);
+        s->lines_accepted, s->lines_rejected);
 }
 
 /* ------------------------------------------------------------ part 1 */
@@ -74,7 +74,7 @@ static void test_real_tree(void)
     if (n == 7) {
         print_report(rec, n, &sum);
         CHECK(rec[1].kind == 'M' && rec[1].year == 2023 && rec[1].month == 12,
-              "rec[1] is 2023-12");
+            "rec[1] is 2023-12");
         CHECK(rec[1].balance_cents == -48935, "Dec 2023 balance -489.35");
         CHECK(rec[1].cumulative_cents == 1031015, "Dec 2023 cumulative");
         CHECK(rec[2].kind == 'Y' && rec[2].month == 0, "rec[2] is year 2023");
@@ -83,18 +83,16 @@ static void test_real_tree(void)
         CHECK(rec[6].kind == 'Y' && rec[6].year == 2024, "rec[6] is year 2024");
         CHECK(rec[6].cumulative_cents == 3263000, "final cumulative 32630.00");
     }
-    CHECK(sum.lines_read == 10 && sum.lines_accepted == 10 &&
-              sum.lines_rejected == 0,
-          "10 read / 10 accepted / 0 rejected");
+    CHECK(sum.lines_read == 10 && sum.lines_accepted == 10 && sum.lines_rejected == 0,
+        "10 read / 10 accepted / 0 rejected");
     CHECK(sum.debit_cents == 4412100 && sum.credit_cents == 1149100,
-          "grand totals 44121.00 / 11491.00");
+        "grand totals 44121.00 / 11491.00");
 
     char s[32];
-    CHECK(lg_format_cents(-48935, s, sizeof s) == LG_OK &&
-              strcmp(s, "-489.35") == 0,
-          "format -489.35");
+    CHECK(lg_format_cents(-48935, s, sizeof s) == LG_OK && strcmp(s, "-489.35") == 0,
+        "format -489.35");
     CHECK(lg_format_cents(5, s, sizeof s) == LG_OK && strcmp(s, "0.05") == 0,
-          "format 0.05");
+        "format 0.05");
 }
 
 /* ------------------------------------------------------------ part 2 */
@@ -114,7 +112,7 @@ static void test_scenarios(void)
     CHECK(lg_home(real, sizeof real) == LG_OK, "lg_home");
     CHECK(mkdtemp(tmp) != NULL && mkdtemp(empty) != NULL, "mkdtemp");
     snprintf(cmd, sizeof cmd, "cp -R '%s/bin' '%s/lib' '%s/data' '%s/'", real,
-             real, real, tmp);
+        real, real, tmp);
     CHECK(system(cmd) == 0, "copy tree");
     setenv("LEGACY_HOME", tmp, 1);
     snprintf(csv, sizeof csv, "%s/data/input/cobol/cb_data.csv", tmp);
@@ -138,9 +136,8 @@ static void test_scenarios(void)
     rc = lg_process(rec, MAXREC, &n, &sum, log, sizeof log);
     CHECK(rc == LG_WARN_REJECTED, lg_strerror(rc));
     CHECK(n == 2 && rec[0].balance_cents == 5975, "month 2024-01 = 59.75");
-    CHECK(sum.lines_read == 3 && sum.lines_accepted == 2 &&
-              sum.lines_rejected == 1,
-          "3 read / 2 accepted / 1 rejected");
+    CHECK(sum.lines_read == 3 && sum.lines_accepted == 2 && sum.lines_rejected == 1,
+        "3 read / 2 accepted / 1 rejected");
     CHECK(strstr(log, "LINE 0000002 REJECTED") != NULL, "log names line 2");
 
     /* overflow: aborted run leaves no valid .dat */
@@ -150,7 +147,7 @@ static void test_scenarios(void)
     CHECK(rc == LG_ERR_COBOL_OVERFLOW, lg_strerror(rc));
     CHECK(n == 0, "nothing loaded after overflow");
     CHECK(lg_load(rec, MAXREC, &n, &sum) == LG_ERR_DATA,
-          "partial .dat is refused (no trailer)");
+        "partial .dat is refused (no trailer)");
 
     /* missing input: stale .dat must not be loaded */
     unlink(csv);
@@ -167,8 +164,7 @@ static void test_scenarios(void)
 
     unsetenv("LEGACY_HOME");
     snprintf(cmd, sizeof cmd, "rm -rf -- '%s' '%s'", tmp, empty);
-    if (strncmp(tmp, "/tmp/legacy_test_", 17) == 0 &&
-        strncmp(empty, "/tmp/legacy_empty_", 18) == 0)
+    if (strncmp(tmp, "/tmp/legacy_test_", 17) == 0 && strncmp(empty, "/tmp/legacy_empty_", 18) == 0)
         CHECK(system(cmd) == 0, "remove temp dirs");
 }
 
