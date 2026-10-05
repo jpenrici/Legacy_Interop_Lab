@@ -15,8 +15,10 @@
 #include <string.h>
 #include <unistd.h>
 
+/* ------------------------------------------------------------ global */
 static int g_checks, g_failed;
 
+/* ------------------------------------------------------------ helper */
 #define CHECK(cond, msg)                                             \
     do {                                                             \
         g_checks++;                                                  \
@@ -52,6 +54,18 @@ static void print_report(const lg_record* r, size_t n, const lg_summary* s)
     }
     printf("  read=%d accepted=%d rejected=%d\n", s->lines_read,
         s->lines_accepted, s->lines_rejected);
+}
+
+/* ------------------------------------------------------------ main */
+static void test_real_tree(void);
+static void test_scenarios(void);
+
+int main(void)
+{
+    test_real_tree();
+    test_scenarios();
+    printf("\n%d checks, %d failed\n", g_checks, g_failed);
+    return g_failed ? 1 : 0;
 }
 
 /* ------------------------------------------------------------ part 1 */
@@ -166,12 +180,4 @@ static void test_scenarios(void)
     snprintf(cmd, sizeof cmd, "rm -rf -- '%s' '%s'", tmp, empty);
     if (strncmp(tmp, "/tmp/legacy_test_", 17) == 0 && strncmp(empty, "/tmp/legacy_empty_", 18) == 0)
         CHECK(system(cmd) == 0, "remove temp dirs");
-}
-
-int main(void)
-{
-    test_real_tree();
-    test_scenarios();
-    printf("\n%d checks, %d failed\n", g_checks, g_failed);
-    return g_failed ? 1 : 0;
 }

@@ -26,33 +26,33 @@ extern "C" {
 
 /* Status codes: 0..4 mirror the legacy_app exit code, negatives are ours. */
 enum lg_status {
-    LG_OK = 0, /* all lines accepted                       */
-    LG_ERR_COBOL_INPUT = 1, /* legacy_app: cannot open the CSV          */
-    LG_ERR_COBOL_OUTPUT = 2, /* legacy_app: cannot write the .dat        */
-    LG_WARN_REJECTED = 3, /* done, but some CSV lines were rejected   */
+    LG_OK = 0, /*                 all lines accepted                       */
+    LG_ERR_COBOL_INPUT = 1, /*    legacy_app: cannot open the CSV          */
+    LG_ERR_COBOL_OUTPUT = 2, /*   legacy_app: cannot write the .dat        */
+    LG_WARN_REJECTED = 3, /*      done, but some CSV lines were rejected   */
     LG_ERR_COBOL_OVERFLOW = 4, /* legacy_app: amount overflow, aborted     */
-    LG_ERR_NOT_FOUND = -1, /* <home>/bin/legacy_app missing            */
-    LG_ERR_SPAWN = -2, /* fork/exec/wait failed                    */
-    LG_ERR_SIGNAL = -3, /* legacy_app killed by a signal            */
-    LG_ERR_DATA = -4, /* .dat missing, corrupt or incomplete      */
-    LG_ERR_ARG = -5, /* bad argument                             */
-    LG_ERR_CAPACITY = -6, /* output array too small                   */
-    LG_ERR_HOME = -7, /* cannot determine <home>                  */
-    LG_ERR_UNEXPECTED = -8 /* unknown exit code from legacy_app        */
+    LG_ERR_NOT_FOUND = -1, /*     <home>/bin/legacy_app missing            */
+    LG_ERR_SPAWN = -2, /*         fork/exec/wait failed                    */
+    LG_ERR_SIGNAL = -3, /*        legacy_app killed by a signal            */
+    LG_ERR_DATA = -4, /*          .dat missing, corrupt or incomplete      */
+    LG_ERR_ARG = -5, /*           bad argument                             */
+    LG_ERR_CAPACITY = -6, /*      output array too small                   */
+    LG_ERR_HOME = -7, /*          cannot determine <home>                  */
+    LG_ERR_UNEXPECTED = -8 /*     unknown exit code from legacy_app        */
 };
 
 /* One ledger line: kind 'M' = month, 'Y' = year closing (month = 0). */
 typedef struct lg_record {
     int64_t debit_cents;
     int64_t credit_cents;
-    int64_t balance_cents; /* debit - credit of the period             */
+    int64_t balance_cents; /*    debit - credit of the period             */
     int64_t cumulative_cents; /* running balance at end of the period     */
     int32_t year;
     int32_t month;
-    int32_t entries; /* accepted CSV lines in the period         */
-    char kind; /* 'M' or 'Y'                               */
-    char pad[3]; /* explicit padding, always zero            */
-} lg_record; /* 48 bytes on LP64                         */
+    int32_t entries; /*          accepted CSV lines in the period         */
+    char kind; /*                'M' or 'Y'                               */
+    char pad[3]; /*              explicit padding, always zero            */
+} lg_record; /*                  48 bytes on LP64                         */
 
 /* Trailer of the .dat (record 'T'). */
 typedef struct lg_summary {
