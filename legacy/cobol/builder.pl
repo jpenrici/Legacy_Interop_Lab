@@ -1,20 +1,70 @@
 #!/usr/bin/env perl
-# legacy/cobol/builder.pl - builds legacy/bin/legacy_app from cobol/src/ledger.cob
-#
-# Toolchain (recommended, "simulated period"):
-#   GnuCOBOL 3.1.2 (Dec 2020) or 3.2 (Jul 2023), built with GCC 10..13
-#   (see dev/gnucobol_install.pl and dev/prepare_legacy_env.pl)
-#   GnuCOBOL configured minimal: --without-db --without-xml2
-#                                --without-json --without-curses
-#   => libcob.so depends only on libgmp + libc, easy to ship in lib/.
-#
-# Env overrides: COBC=/path/to/cobc GCC=gcc-10 (or CC=gcc-10 / COB_CC=gcc-10)
-#                COBOL_HOME=/opt/gnucobol-3.1.2  (uses $COBOL_HOME/bin/cobc)
-#                example:
-#                 COBOL_HOME=/opt/gnucobol-3.1.2 GCC=gcc-13 perl builder.pl
-#                 GCC=gcc-13 perl builder.pl [clean]
-#
-# Usage:          perl builder.pl [clean]
+# legacy/cobol/builder.pl
+
+=head1 NAME
+
+builder.pl - Builds legacy/bin/legacy_app from cobol/src/ledger.cob
+
+=head1 SYNOPSIS
+
+    perl builder.pl [clean]
+
+=head1 DESCRIPTION
+
+This script automates the build process for the legacy application from the COBOL source code.
+
+=head2 Recommended Toolchain ("Simulated Period")
+
+=over 4
+
+=item *
+
+GnuCOBOL 3.1.2 (Dec 2020) or 3.2 (Jul 2023), built with GCC 10..13
+(see C<dev/gnucobol_install.pl> and C<dev/prepare_legacy_env.pl>).
+
+=item *
+
+GnuCOBOL configured minimally:
+C<--without-db --without-xml2 --without-json --without-curses>.
+
+=item *
+
+Result: C<libcob.so> depends only on C<libgmp + libc>, making it easy to ship in C<lib/>.
+
+=back
+
+=head1 ENVIRONMENT
+
+The following environment variables can be used to override default settings:
+
+=over 4
+
+=item B<COBC>
+
+Path to the C<cobc> compiler (e.g., C</path/to/cobc>).
+
+=item B<GCC>, B<CC>, B<COB_CC>
+
+C compiler version or path (e.g., C<gcc-10> or C<gcc-13>).
+
+=item B<COBOL_HOME>
+
+GnuCOBOL installation root directory (e.g., C</opt/gnucobol-3.1.2>). Uses C<$COBOL_HOME/bin/cobc> automatically.
+
+=back
+
+=head1 EXAMPLES
+
+Running with environment variables:
+
+    COBOL_HOME=/opt/gnucobol-3.1.2 GCC=gcc-13 perl builder.pl
+
+Running a clean build:
+
+    GCC=gcc-13 perl builder.pl clean
+
+=cut
+
 use strict;
 use warnings;
 use Cwd            qw(abs_path);

@@ -1,19 +1,26 @@
-/*
- * legacy/bridge/include/api.h
+// legacy/bridge/include/api.h
+
+/***
+ * @file api.h
+ * @brief C bridge to the COBOL ledger (legacy_app).
  *
- * api.h - C bridge to the COBOL ledger (legacy_app)
+ * Provides a plain C ABI, flat structs, and fixed-size types designed for
+ * easy calling through Foreign Function Interfaces (FFI) such as Python ctypes,
+ * Node ffi, Rust extern "C", etc.
  *
- * Plain C ABI, flat structs, fixed-size types: easy to call through FFI
- * (Python ctypes, Node ffi, Rust extern "C", ...).
+ * @section runtime Runtime Tree and Relocation
+ * The library finds its environment tree at runtime (relocatable):
+ * - <home>/bin/legacy_app (executed with <home>/bin as cwd)
+ * - <home>/data/store/cobol/cb_data.dat
  *
- * The library finds its tree at run time (relocatable):
- *     <home>/bin/legacy_app            run with <home>/bin as cwd
- *     <home>/data/store/cobol/cb_data.dat
- * <home> = $LEGACY_HOME if set, else two levels above this library
- * (<home>/lib/lib_c_api.so).
+ * Where <home> is resolved as:
+ * - $LEGACY_HOME if set, OR
+ * - Two levels above this library (<home>/lib/lib_c_api.so).
  *
- * All money values are integer CENTS in USD (no floating point).
+ * @section financial Financial Representation
+ * All money values are represented as integer **CENTS** in USD (no floating-point numbers used).
  */
+
 #ifndef LEGACY_API_H
 #define LEGACY_API_H
 

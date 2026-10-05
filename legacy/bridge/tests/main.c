@@ -1,13 +1,19 @@
-/*
- * legacy/bridge/tests/main.c
+// legacy/bridge/tests/main.c
+
+/**
+ * @file main.c
+ * @brief Test runner for the C API bridge (c_api_test).
  *
- * c_api_test - drives legacy_app through lib_c_api.
+ * Drives C<legacy_app> through C<lib_c_api>.
  *
- * Part 1 runs on the real tree (shipped sample data).
- * Part 2 copies bin/lib/data to a temp dir and points LEGACY_HOME at it,
- * so error scenarios never touch the real data. As a side effect this
- * also proves the tree works after being moved.
+ * @section test_flow Test Execution Flow
+ * - **Part 1:** Runs on the real tree using shipped sample data.
+ * - **Part 2:** Copies C<bin>/C<lib>/C<data> to a temporary directory and sets
+ *   C<LEGACY_HOME> to point to it. This ensures error scenarios never touch
+ *   the real data and simultaneously proves that the tree remains fully
+ *   functional after being moved (relocatability test).
  */
+
 #define _GNU_SOURCE
 #include "api.h"
 

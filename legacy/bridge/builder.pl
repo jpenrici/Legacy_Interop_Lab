@@ -1,9 +1,72 @@
 #!/usr/bin/env perl
-# legacy/bridge/builder.pl - builds legacy/lib/lib_c_api.so and legacy/bin/c_api_test
-#
-# Requires: legacy/bin/legacy_app (run cobol/builder.pl first),
-#           CMake >= 3.16 and GCC >= 14 (CC=/path/to/gcc-14 to choose one).
-# Usage:    perl builder.pl [build|test|clean]     (default: build + test)
+# legacy/bridge/builder.pl
+
+=head1 NAME
+
+builder.pl - Builds legacy/lib/lib_c_api.so and legacy/bin/c_api_test
+
+=head1 SYNOPSIS
+
+    perl builder.pl [build|test|clean]
+
+*(Note: default action if none is provided is C<build + test>)*
+
+=head1 DESCRIPTION
+
+This script automates the compilation and testing process for the C API components of the legacy project.
+
+=head1 PREREQUISITES
+
+=over 4
+
+=item *
+
+C<legacy/bin/legacy_app> (Make sure to run C<cobol/builder.pl> first).
+
+=item *
+
+CMake >= 3.16.
+
+=item *
+
+GCC >= 14 (You can specify the path using C<CC=/path/to/gcc-14>).
+
+=back
+
+=head1 ARGUMENTS
+
+=over 4
+
+=item B<build>
+
+Compiles the C API library and test binaries.
+
+=item B<test>
+
+Executes the test suite.
+
+=item B<clean>
+
+Cleans up build artifacts.
+
+=back
+
+=head1 EXAMPLES
+
+Building and testing with a specific GCC compiler:
+
+    CC=/opt/gcc-14/bin/gcc perl builder.pl build
+
+Running only the tests:
+
+    perl builder.pl test
+
+Performing a clean build:
+
+    perl builder.pl clean
+
+=cut
+
 use strict;
 use warnings;
 use Cwd            qw(abs_path);
