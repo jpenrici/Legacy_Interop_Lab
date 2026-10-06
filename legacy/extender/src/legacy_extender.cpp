@@ -1,6 +1,6 @@
-// legacy/wrapper/cpp/src/legagy_wrapper.cpp
+// legacy/extender/src/legagy_wrapper.cpp
 
-#include "legacy_wrapper.hpp"
+#include "legacy_extender.hpp"
 #include <array>
 
 namespace Legacy {

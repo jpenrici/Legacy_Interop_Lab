@@ -1,6 +1,6 @@
-// legacy/wrapper/cpp/tests/main.cpp
+// legacy/extender/tests/main.cpp
 
-#include "legacy_wrapper.hpp"
+#include "legacy_extender.hpp"
 #include <iostream>
 
 auto main() -> int

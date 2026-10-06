@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# legacy/wrapper/cpp/builder.pl
+# legacy/extender/builder.pl
 
 # TO DO - PDO
 
@@ -11,7 +11,7 @@ use File::Temp     qw(tempdir);
 
 # --- paths -----------------------------------------------------------
 my $here = abs_path( dirname(__FILE__) );
-my $root = abs_path("$here/../..");
+my $root = abs_path("$here/..");
 
 # --- helper ----------------------------------------------------------
 my $mode = shift // 'all';
@@ -25,7 +25,7 @@ sub run { print "builder: @_\n"; system(@_) == 0 or fail("failed: @_") }
 
 # --- clean -----------------------------------------------------------
 if ( $mode eq 'clean' ) {
-    unlink "$root/bin/cpp_wrapper_test";
+    unlink "$root/bin/cpp_extender_test";
     print "builder: cleaned\n";
     exit 0;
 }
@@ -57,13 +57,13 @@ if ( $mode ne 'test' ) {
     run( $cmake, '-S', $here, '-B', $build, "-DCMAKE_CXX_COMPILER=$cxx",
         '-DCMAKE_BUILD_TYPE=Release' );
     run( $cmake, '--build', $build, '-j' );
-    print "builder: built lib/cpp_api.so and bin/cpp_wrapper_test\n";
+    print "builder: built lib/cpp_api.so and bin/cpp_extender_test\n";
 }
 
 # 4. tests always run from legacy/bin, like any other executable
 if ( $mode ne 'build' ) {
-    fail("bin/cpp_wrapper_test not found - run build first")
-      unless -x "$root/bin/cpp_wrapper_test";
+    fail("bin/cpp_extender_test not found - run build first")
+      unless -x "$root/bin/cpp_extender_test";
     chdir "$root/bin" or fail("chdir: $!");
-    run('./cpp_wrapper_test');
+    run('./cpp_extender_test');
 }

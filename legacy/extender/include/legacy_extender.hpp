@@ -1,4 +1,4 @@
-// legacy/wrapper/cpp/include/legagy_wrapper.hpp
+// legacy/extender/include/legagy_wrapper.hpp
 
 #pragma once
 
