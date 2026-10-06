@@ -84,9 +84,33 @@ my $exe   = "$bin/legacy_app";
 sub die_msg { print STDERR "builder: @_\n"; exit 1 }
 
 # --- clean -----------------------------------------------------------
+
+# Libraries copied into lib/ are listed in a manifest, so that a later build
+# or "clean" removes exactly them (a stale library from another cobc could
+# otherwise shadow the right one: DT_RPATH beats LD_LIBRARY_PATH).
+# lib_c_api.so belongs to the bridge and is never touched here.
+my $manifest = "$lib/.cobol-bundled";
+
+sub remove_bundled {
+    my @old;
+    if ( open( my $fh, '<', $manifest ) ) {
+        chomp( @old = <$fh> );
+        close $fh;
+    }
+    push @old,
+      map { basename($_) }
+      glob("$lib/libcob.so* $lib/libgmp.so*"); # trees built before the manifest
+    my %seen;
+    for my $name ( grep { length && !$seen{$_}++ } @old ) {
+        next if $name =~ m{/} || $name eq 'lib_c_api.so';
+        unlink "$lib/$name";
+    }
+    unlink $manifest;
+}
+
 if ( @ARGV && $ARGV[0] eq 'clean' ) {
     unlink $exe;
-    unlink glob("$lib/lib*.so*");
+    remove_bundled();
     print "builder: cleaned\n";
     exit 0;
 }
@@ -116,6 +140,7 @@ print "builder: C compiler = ",
 
 die_msg("source not found: $src") unless -f $src;
 make_path( $bin, $lib, $store );
+remove_bundled();    # before compiling, so no stale library can be picked up
 
 # --- compile ---------------------------------------------------------
 # -Q passes the linker option: the executable finds ../lib at run time,
@@ -138,6 +163,7 @@ my %skip = map { $_ => 1 }
 # resolve against the libcob that cobc linked (its -L dir), not whatever
 # the system loader finds first
 my ($cobdir) = ( `"$cobc" --info` =~ /COB_LIBS\s*:.*?-L(\S+)/ );
+my @bundled;
 my $ldd = do {
     local $ENV{LD_LIBRARY_PATH} = $cobdir // '';
     `ldd "$exe" 2>&1`;
@@ -150,7 +176,12 @@ for my $line ( split /\n/, $ldd ) {
     next if abs_path($path) eq ( -e $dest ? abs_path($dest) : '' );
     unlink $dest;
     copy( abs_path($path), $dest ) or die_msg("copy $path: $!");
+    push @bundled, $name;
     print "builder: bundled $name\n";
+}
+if ( open( my $mf, '>', $manifest ) ) {
+    print {$mf} map { "$_\n" } @bundled;
+    close $mf;
 }
 
 # --- verify: with a clean environment, libs must resolve to ../lib ---
