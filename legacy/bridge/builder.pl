@@ -3,7 +3,7 @@
 
 =head1 NAME
 
-builder.pl - Builds legacy/lib/lib_c_api.so and legacy/bin/c_api_test
+builder.pl - Builds legacy/lib/lib_c_api.so and legacy/bin/c_bridge_test
 
 =head1 SYNOPSIS
 
@@ -89,7 +89,7 @@ sub run  { print "builder: @_\n"; system(@_) == 0 or fail("failed: @_") }
 
 # --- clean -----------------------------------------------------------
 if ( $mode eq 'clean' ) {
-    unlink "$root/bin/c_api_test", "$root/lib/lib_c_api.so";
+    unlink "$root/bin/c_bridge_test", "$root/lib/lib_c_api.so";
     print "builder: cleaned\n";
     exit 0;
 }
@@ -120,13 +120,13 @@ if ( $mode ne 'test' ) {
     run( $cmake, '-S', $here, '-B', $build, "-DCMAKE_C_COMPILER=$cc",
         '-DCMAKE_BUILD_TYPE=Release' );
     run( $cmake, '--build', $build, '-j' );
-    print "builder: built lib/lib_c_api.so and bin/c_api_test\n";
+    print "builder: built lib/lib_c_api.so and bin/c_bridge_test\n";
 }
 
 # 4. tests always run from legacy/bin, like any other executable
 if ( $mode ne 'build' ) {
-    fail("bin/c_api_test not found - run build first")
-      unless -x "$root/bin/c_api_test";
+    fail("bin/c_bridge_test not found - run build first")
+      unless -x "$root/bin/c_bridge_test";
     chdir "$root/bin" or fail("chdir: $!");
-    run('./c_api_test');
+    run('./c_bridge_test');
 }

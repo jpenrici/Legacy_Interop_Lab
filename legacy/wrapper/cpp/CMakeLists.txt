@@ -33,8 +33,8 @@ set_target_properties(c_api PROPERTIES IMPORTED_LOCATION
 add_library(legacy_cpp_wrapper SHARED src/legacy_wrapper.cpp)
 set_target_properties(
   legacy_cpp_wrapper
-  PROPERTIES OUTPUT_NAME _cpp_wrapper # -> lib_cpp_wrapper.so
-             CXX_VISIBILITY_PRESET hidden
+  PROPERTIES OUTPUT_NAME _cpp_api # -> lib_cpp_api.so
+             # CXX_VISIBILITY_PRESET hidden
              LIBRARY_OUTPUT_DIRECTORY "${LEGACY_ROOT}/lib")
 
 target_include_directories(legacy_cpp_wrapper PUBLIC include
@@ -58,7 +58,7 @@ target_compile_options(cpp_wrapper_test PRIVATE ${WRAPPER_WARN}
                                                 ${WRAPPER_HARDEN})
 
 # # Links the test to the C++ wrapper
-target_link_libraries(cpp_wrapper_test PRIVATE legacy_cpp_wrapper)
+target_link_libraries(cpp_wrapper_test PRIVATE legacy_cpp_wrapper stdc++)
 
 enable_testing()
 add_test(

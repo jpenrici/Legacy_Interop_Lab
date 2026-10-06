@@ -34,18 +34,18 @@ target_include_directories(c_api PUBLIC include)
 target_compile_options(c_api PRIVATE ${BRIDGE_WARN} ${BRIDGE_HARDEN})
 target_link_libraries(c_api PRIVATE ${CMAKE_DL_LIBS})
 
-# bin/c_api_test : finds ../lib by itself, whatever the tree location.
-add_executable(c_api_test tests/main.c)
+# bin/c_bridge_test : finds ../lib by itself, whatever the tree location.
+add_executable(c_bridge_test tests/main.c)
 set_target_properties(
-  c_api_test
+  c_bridge_test
   PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${LEGACY_ROOT}/bin"
              BUILD_WITH_INSTALL_RPATH ON
              INSTALL_RPATH "\$ORIGIN/../lib")
-target_compile_options(c_api_test PRIVATE ${BRIDGE_WARN} ${BRIDGE_HARDEN})
-target_link_libraries(c_api_test PRIVATE c_api)
+target_compile_options(c_bridge_test PRIVATE ${BRIDGE_WARN} ${BRIDGE_HARDEN})
+target_link_libraries(c_bridge_test PRIVATE c_api)
 
 enable_testing()
 add_test(
-  NAME c_api_test
-  COMMAND c_api_test
+  NAME c_bridge_test
+  COMMAND c_bridge_test
   WORKING_DIRECTORY "${LEGACY_ROOT}/bin")

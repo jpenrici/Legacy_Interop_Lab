@@ -70,17 +70,17 @@ options you pass. It may need root; see C<--priv>.
 
 Runs C<cobol/builder.pl> (COBOL to C<bin/cobol_app>, libcob and libgmp copied
 to C<lib/>) and then C<bridge/builder.pl build> (C<lib/lib_c_api.so> and
-C<bin/c_api_test>) with the toolchain found by C<check>.
+C<bin/c_bridge_test>) with the toolchain found by C<check>.
 
 =item B<run>
 
-Runs C<bin/cobol_app> and C<bin/c_api_test> with C<legacy/bin> as the working
+Runs C<bin/cobol_app> and C<bin/c_bridge_test> with C<legacy/bin> as the working
 directory and a scrubbed environment (no LD_LIBRARY_PATH, COBOL_HOME, COB_*,
 LEGACY_HOME), which proves the tree is self-contained. Before that it checks
 with C<ldd> that every library resolves inside C<legacy/lib>. Exit codes of
 C<cobol_app>: 0 ok, 1 input file, 2 output file, 3 done with rejected lines,
 4 overflow. Naming executables (C<setup.pl run cobol_app>) runs only those.
-Note that C<c_api_test> regenerates C<data/store/cobol/cb_data.dat>.
+Note that C<c_bridge_test> regenerates C<data/store/cobol/cb_data.dat>.
 
 =item B<all>
 
@@ -152,7 +152,7 @@ my @EXECUTABLES = (
         ok   => [0],
         warn => { 3 => 'some input lines were rejected' }
     },
-    { name => 'c_api_test', ok => [0], warn => {} },
+    { name => 'c_bridge_test', ok => [0], warn => {} },
 );
 my %EXIT_MEANING = (
     1 => 'cannot open the input CSV',
@@ -667,7 +667,7 @@ sub run_checks {
     print "\n-- build state\n";
     my @built = (
         [ 'bin/cobol_app',   'COBOL executable' ],
-        [ 'bin/c_api_test',   'bridge test program' ],
+        [ 'bin/c_bridge_test',   'bridge test program' ],
         [ 'lib/lib_c_api.so', 'bridge library' ],
     );
     for my $b (@built) {

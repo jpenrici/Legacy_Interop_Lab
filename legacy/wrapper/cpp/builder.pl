@@ -25,7 +25,7 @@ sub run { print "builder: @_\n"; system(@_) == 0 or fail("failed: @_") }
 
 # --- clean -----------------------------------------------------------
 if ( $mode eq 'clean' ) {
-    unlink "$root/bin/legacy_wrapper_test";
+    unlink "$root/bin/cpp_wrapper_test";
     print "builder: cleaned\n";
     exit 0;
 }
@@ -36,27 +36,28 @@ fail("lib/lib_c_api not found - run: perl bridge/builder.pl")
   unless -x "$root/lib/lib_c_api.so";
 
 if ( $mode ne 'test' ) {
+
     # 2. tools and GCC >= 14
     my ($cmake) = grep { -x $_ } map { "$_/cmake" } split /:/, $ENV{PATH} // '';
     fail("cmake not found") unless $cmake;
 
-    my @cands = grep { defined && length } ( $ENV{CC}, qw(gcc-15 gcc-14 gcc) );
-    my ( $cc, $major );
+    my @cands = grep { defined && length } ( $ENV{CXX}, qw(g++-15 g++-14 g++) );
+    my ( $cxx, $major );
     for my $c (@cands) {
         my $v = `$c -dumpversion 2>/dev/null` or next;
         ($major) = $v =~ /^(\d+)/ or next;
-        if ( $major >= 14 ) { $cc = $c; last }
+        if ( $major >= 14 ) { $cxx = $c; last }
     }
-    fail("GCC >= 14 not found (tried: @cands); set CC=/path/to/gcc-14")
-      unless $cc;
-    print "builder: using $cc (GCC $major)\n";
+    fail("GCC >= 14 not found (tried: @cands); set CXX=/path/to/g++-14")
+      unless $cxx;
+    print "builder: using $cxx (GCC/G++$major)\n";
 
     # 3. out-of-tree build dir, removed afterwards
     my $build = tempdir( 'legacy_wrapper_XXXXXX', TMPDIR => 1, CLEANUP => 1 );
-    run( $cmake, '-S', $here, '-B', $build, "-DCMAKE_CXX_COMPILER=$cc",
+    run( $cmake, '-S', $here, '-B', $build, "-DCMAKE_CXX_COMPILER=$cxx",
         '-DCMAKE_BUILD_TYPE=Release' );
     run( $cmake, '--build', $build, '-j' );
-    print "builder: built lib/cpp_wrapper.so and bin/legacy_wrapper_test\n";
+    print "builder: built lib/cpp_api.so and bin/cpp_wrapper_test\n";
 }
 
 # 4. tests always run from legacy/bin, like any other executable
