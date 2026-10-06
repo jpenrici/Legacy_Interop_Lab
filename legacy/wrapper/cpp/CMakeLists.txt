@@ -24,34 +24,44 @@ set(WRAPPER_WARN -Wall -Wextra -Wpedantic -Wshadow -Wformat=2 -Wconversion)
 set(WRAPPER_HARDEN -O2 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2
                    -fstack-protector-strong)
 
+# Import C library
+add_library(c_api SHARED IMPORTED)
+set_target_properties(c_api PROPERTIES IMPORTED_LOCATION
+                                       "${LEGACY_ROOT}/lib/lib_c_api.so")
+
 # C++ Wrapper Library
-add_library(legacy_cpp_wrapper src/legacy_wrapper.cpp)
+add_library(legacy_cpp_wrapper SHARED src/legacy_wrapper.cpp)
 set_target_properties(
   legacy_cpp_wrapper
   PROPERTIES OUTPUT_NAME _legacy_cpp_wrapper # -> lib_legacy_cpp_wrapper.so
              CXX_VISIBILITY_PRESET hidden
              LIBRARY_OUTPUT_DIRECTORY "${LEGACY_ROOT}/lib")
 
-target_include_directories(legacy_cpp_wrapper PUBLIC include)
 target_include_directories(legacy_cpp_wrapper PUBLIC include
                                                      ../../bridge/include)
+
 target_compile_options(legacy_cpp_wrapper PRIVATE ${WRAPPER_WARN}
                                                   ${WRAPPER_HARDEN})
-target_link_libraries(legacy_cpp_wrapper PRIVATE ${CMAKE_DL_LIBS})
 
-# bin/legacy_wrapper_test : finds ../lib by itself, whatever the tree location.
-add_executable(legacy_wrapper_test tests/main.cpp)
+# Links the wrapper to the C API and system dependencies
+target_link_libraries(legacy_cpp_wrapper PRIVATE c_api ${CMAKE_DL_LIBS})
+
+# Test Executable
+add_executable(cpp_wrapper_test tests/main.cpp)
 set_target_properties(
-  legacy_wrapper_test
+  cpp_wrapper_test
   PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${LEGACY_ROOT}/bin"
              BUILD_WITH_INSTALL_RPATH ON
              INSTALL_RPATH "\$ORIGIN/../lib")
-target_compile_options(legacy_wrapper_test PRIVATE ${WRAPPER_WARN}
-                                                   ${WRAPPER_HARDEN})
-target_link_libraries(legacy_wrapper_test PRIVATE c_api)
+
+target_compile_options(cpp_wrapper_test PRIVATE ${WRAPPER_WARN}
+                                                ${WRAPPER_HARDEN})
+
+# # Links the test to the C++ wrapper
+target_link_libraries(cpp_wrapper_test PRIVATE legacy_cpp_wrapper)
 
 enable_testing()
 add_test(
-  NAME legacy_wrapper_test
-  COMMAND legacy_wrapper_test
+  NAME cpp_wrapper_test
+  COMMAND cpp_wrapper_test
   WORKING_DIRECTORY "${LEGACY_ROOT}/bin")
