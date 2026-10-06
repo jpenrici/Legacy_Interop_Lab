@@ -68,18 +68,18 @@ options you pass. It may need root; see C<--priv>.
 
 =item B<build>
 
-Runs C<cobol/builder.pl> (COBOL to C<bin/legacy_app>, libcob and libgmp copied
+Runs C<cobol/builder.pl> (COBOL to C<bin/cobol_app>, libcob and libgmp copied
 to C<lib/>) and then C<bridge/builder.pl build> (C<lib/lib_c_api.so> and
 C<bin/c_api_test>) with the toolchain found by C<check>.
 
 =item B<run>
 
-Runs C<bin/legacy_app> and C<bin/c_api_test> with C<legacy/bin> as the working
+Runs C<bin/cobol_app> and C<bin/c_api_test> with C<legacy/bin> as the working
 directory and a scrubbed environment (no LD_LIBRARY_PATH, COBOL_HOME, COB_*,
 LEGACY_HOME), which proves the tree is self-contained. Before that it checks
 with C<ldd> that every library resolves inside C<legacy/lib>. Exit codes of
-C<legacy_app>: 0 ok, 1 input file, 2 output file, 3 done with rejected lines,
-4 overflow. Naming executables (C<setup.pl run legacy_app>) runs only those.
+C<cobol_app>: 0 ok, 1 input file, 2 output file, 3 done with rejected lines,
+4 overflow. Naming executables (C<setup.pl run cobol_app>) runs only those.
 Note that C<c_api_test> regenerates C<data/store/cobol/cb_data.dat>.
 
 =item B<all>
@@ -107,7 +107,7 @@ run this script again).
   perl dev/setup.pl build --cobol-home /opt/gnucobol-3.1.2
   perl dev/setup.pl all --system-cobol       # use the apt GnuCOBOL, with warnings
   perl dev/setup.pl check --system-cobol --strict
-  perl dev/setup.pl run legacy_app
+  perl dev/setup.pl run cobol_app
 
 =cut
 
@@ -148,7 +148,7 @@ my @DATA_DIRS = qw(bin lib data/input/cobol data/store/cobol data/backup);
 # Executables run by "run", in order, with the exit codes they may return.
 my @EXECUTABLES = (
     {
-        name => 'legacy_app',
+        name => 'cobol_app',
         ok   => [0],
         warn => { 3 => 'some input lines were rejected' }
     },
@@ -666,7 +666,7 @@ sub run_checks {
 
     print "\n-- build state\n";
     my @built = (
-        [ 'bin/legacy_app',   'COBOL executable' ],
+        [ 'bin/cobol_app',   'COBOL executable' ],
         [ 'bin/c_api_test',   'bridge test program' ],
         [ 'lib/lib_c_api.so', 'bridge library' ],
     );

@@ -2,7 +2,7 @@
 
 /***
  * @file api.h
- * @brief C bridge to the COBOL ledger (legacy_app).
+ * @brief C bridge to the COBOL ledger (cobol_app).
  *
  * Provides a plain C ABI, flat structs, and fixed-size types designed for
  * easy calling through Foreign Function Interfaces (FFI) such as Python ctypes,
@@ -10,7 +10,7 @@
  *
  * @section runtime Runtime Tree and Relocation
  * The library finds its environment tree at runtime (relocatable):
- * - <home>/bin/legacy_app (executed with <home>/bin as cwd)
+ * - <home>/bin/cobol_app (executed with <home>/bin as cwd)
  * - <home>/data/store/cobol/cb_data.dat
  *
  * Where <home> is resolved as:
@@ -33,21 +33,21 @@ extern "C" {
 
 #define LG_API __attribute__((visibility("default")))
 
-/* Status codes: 0..4 mirror the legacy_app exit code, negatives are ours. */
+/* Status codes: 0..4 mirror the cobol_app exit code, negatives are ours. */
 enum lg_status {
     LG_OK = 0, /*                 all lines accepted                       */
-    LG_ERR_COBOL_INPUT = 1, /*    legacy_app: cannot open the CSV          */
-    LG_ERR_COBOL_OUTPUT = 2, /*   legacy_app: cannot write the .dat        */
+    LG_ERR_COBOL_INPUT = 1, /*    cobol_app: cannot open the CSV          */
+    LG_ERR_COBOL_OUTPUT = 2, /*   cobol_app: cannot write the .dat        */
     LG_WARN_REJECTED = 3, /*      done, but some CSV lines were rejected   */
-    LG_ERR_COBOL_OVERFLOW = 4, /* legacy_app: amount overflow, aborted     */
-    LG_ERR_NOT_FOUND = -1, /*     <home>/bin/legacy_app missing            */
+    LG_ERR_COBOL_OVERFLOW = 4, /* cobol_app: amount overflow, aborted     */
+    LG_ERR_NOT_FOUND = -1, /*     <home>/bin/cobol_app missing            */
     LG_ERR_SPAWN = -2, /*         fork/exec/wait failed                    */
-    LG_ERR_SIGNAL = -3, /*        legacy_app killed by a signal            */
+    LG_ERR_SIGNAL = -3, /*        cobol_app killed by a signal            */
     LG_ERR_DATA = -4, /*          .dat missing, corrupt or incomplete      */
     LG_ERR_ARG = -5, /*           bad argument                             */
     LG_ERR_CAPACITY = -6, /*      output array too small                   */
     LG_ERR_HOME = -7, /*          cannot determine <home>                  */
-    LG_ERR_UNEXPECTED = -8 /*     unknown exit code from legacy_app        */
+    LG_ERR_UNEXPECTED = -8 /*     unknown exit code from cobol_app        */
 };
 
 /* One ledger line: kind 'M' = month, 'Y' = year closing (month = 0). */
@@ -84,9 +84,9 @@ LG_API const char* lg_strerror(int status);
 LG_API int lg_home(char* buf, size_t size);
 
 /*
- * Runs legacy_app (cwd = <home>/bin) and waits for it.
+ * Runs cobol_app (cwd = <home>/bin) and waits for it.
  * log (optional) receives its stdout+stderr, truncated, NUL-terminated.
- * Returns the legacy_app exit code (0..4) or a negative LG_ERR_*.
+ * Returns the cobol_app exit code (0..4) or a negative LG_ERR_*.
  */
 LG_API int lg_run(char* log, size_t log_size);
 
@@ -100,7 +100,7 @@ LG_API int lg_load(lg_record* out, size_t max, size_t* count,
     lg_summary* summary);
 
 /*
- * lg_run + lg_load. The .dat is only loaded when legacy_app finished
+ * lg_run + lg_load. The .dat is only loaded when cobol_app finished
  * (LG_OK or LG_WARN_REJECTED); otherwise the old file may be stale.
  * Returns LG_OK, LG_WARN_REJECTED (data loaded), or an error code.
  */

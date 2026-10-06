@@ -18,7 +18,7 @@
 #define LEN_DETAIL 74 /* M and Y */
 #define LEN_TRAILER 67
 #define LINE_BUF 256
-#define REL_EXE "/bin/legacy_app"
+#define REL_EXE "/bin/cobol_app"
 #define REL_BIN "/bin"
 #define REL_DAT "/data/store/cobol/cb_data.dat"
 
@@ -32,19 +32,19 @@ const char* lg_strerror(int status)
     case LG_OK:
         return "ok";
     case LG_ERR_COBOL_INPUT:
-        return "legacy_app: cannot open input CSV";
+        return "cobol_app: cannot open input CSV";
     case LG_ERR_COBOL_OUTPUT:
-        return "legacy_app: cannot write output .dat";
+        return "cobol_app: cannot write output .dat";
     case LG_WARN_REJECTED:
         return "done, some input lines were rejected";
     case LG_ERR_COBOL_OVERFLOW:
-        return "legacy_app: amount overflow";
+        return "cobol_app: amount overflow";
     case LG_ERR_NOT_FOUND:
-        return "legacy_app not found";
+        return "cobol_app not found";
     case LG_ERR_SPAWN:
-        return "cannot start legacy_app";
+        return "cannot start cobol_app";
     case LG_ERR_SIGNAL:
-        return "legacy_app killed by a signal";
+        return "cobol_app killed by a signal";
     case LG_ERR_DATA:
         return "output .dat missing or invalid";
     case LG_ERR_ARG:
@@ -54,7 +54,7 @@ const char* lg_strerror(int status)
     case LG_ERR_HOME:
         return "cannot determine legacy home";
     case LG_ERR_UNEXPECTED:
-        return "unexpected exit code from legacy_app";
+        return "unexpected exit code from cobol_app";
     default:
         return "unknown status";
     }
@@ -136,7 +136,7 @@ int lg_run(char* log, size_t log_size)
     }
     if (pid == 0) { /* child: async-signal-safe calls only */
         int nul = open("/dev/null", O_RDONLY);
-        char* argv[] = { "legacy_app", NULL };
+        char* argv[] = { "cobol_app", NULL };
         if (nul < 0 || dup2(nul, STDIN_FILENO) < 0 || dup2(pfd[1], STDOUT_FILENO) < 0 || dup2(pfd[1], STDERR_FILENO) < 0 || chdir(bindir) != 0)
             _exit(127);
         execv(exe, argv);

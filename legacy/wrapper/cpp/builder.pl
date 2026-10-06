@@ -53,16 +53,16 @@ if ( $mode ne 'test' ) {
 
     # 3. out-of-tree build dir, removed afterwards
     my $build = tempdir( 'legacy_wrapper_XXXXXX', TMPDIR => 1, CLEANUP => 1 );
-    run( $cmake, '-S', $here, '-B', $build, "-DCMAKE_C_COMPILER=$cc",
+    run( $cmake, '-S', $here, '-B', $build, "-DCMAKE_CXX_COMPILER=$cc",
         '-DCMAKE_BUILD_TYPE=Release' );
     run( $cmake, '--build', $build, '-j' );
-    print "builder: built lib/lib_c_api.so and bin/legacy_wrapper_test\n";
+    print "builder: built lib/cpp_wrapper.so and bin/legacy_wrapper_test\n";
 }
 
 # 4. tests always run from legacy/bin, like any other executable
 if ( $mode ne 'build' ) {
-    fail("bin/legacy_wrapper_test not found - run build first")
-      unless -x "$root/bin/legacy_wrapper_test";
+    fail("bin/cpp_wrapper_test not found - run build first")
+      unless -x "$root/bin/cpp_wrapper_test";
     chdir "$root/bin" or fail("chdir: $!");
-    run('./legacy_wrapper_test');
+    run('./cpp_wrapper_test');
 }

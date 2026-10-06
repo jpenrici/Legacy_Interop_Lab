@@ -21,7 +21,7 @@ This script automates the compilation and testing process for the C API componen
 
 =item *
 
-C<legacy/bin/legacy_app> (Make sure to run C<cobol/builder.pl> first).
+C<legacy/bin/cobol_app> (Make sure to run C<cobol/builder.pl> first).
 
 =item *
 
@@ -96,8 +96,8 @@ if ( $mode eq 'clean' ) {
 
 # --- main ------------------------------------------------------------
 # 1. the COBOL executable must exist: the bridge drives it
-fail("bin/legacy_app not found - run: perl cobol/builder.pl")
-  unless -x "$root/bin/legacy_app";
+fail("bin/cobol_app not found - run: perl cobol/builder.pl")
+  unless -x "$root/bin/cobol_app";
 
 if ( $mode ne 'test' ) {
     # 2. tools and GCC >= 14

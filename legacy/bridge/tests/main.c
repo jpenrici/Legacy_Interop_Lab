@@ -4,7 +4,7 @@
  * @file main.c
  * @brief Test runner for the C API bridge (c_api_test).
  *
- * Drives C<legacy_app> through C<lib_c_api>.
+ * Drives C<cobol_app> through C<lib_c_api>.
  *
  * @section test_flow Test Execution Flow
  * - **Part 1:** Runs on the real tree using shipped sample data.
@@ -179,7 +179,7 @@ static void test_scenarios(void)
 
     /* wrong home */
     setenv("LEGACY_HOME", empty, 1);
-    CHECK(lg_run(NULL, 0) == LG_ERR_NOT_FOUND, "no legacy_app in empty home");
+    CHECK(lg_run(NULL, 0) == LG_ERR_NOT_FOUND, "no cobol_app in empty home");
     setenv("LEGACY_HOME", "/nonexistent/legacy", 1);
     CHECK(lg_run(NULL, 0) == LG_ERR_HOME, "invalid LEGACY_HOME");
     CHECK(lg_load(NULL, 0, NULL, &sum) == LG_ERR_ARG, "NULL count");

@@ -2,7 +2,7 @@
 
 cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
 
-project(legacy_extender CXX)
+project(legacy_extender LANGUAGES CXX)
 
 # The wrapper requires GCC 14 or newer.
 if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_VERSION
@@ -33,7 +33,7 @@ set_target_properties(c_api PROPERTIES IMPORTED_LOCATION
 add_library(legacy_cpp_wrapper SHARED src/legacy_wrapper.cpp)
 set_target_properties(
   legacy_cpp_wrapper
-  PROPERTIES OUTPUT_NAME _legacy_cpp_wrapper # -> lib_legacy_cpp_wrapper.so
+  PROPERTIES OUTPUT_NAME _cpp_wrapper # -> lib_cpp_wrapper.so
              CXX_VISIBILITY_PRESET hidden
              LIBRARY_OUTPUT_DIRECTORY "${LEGACY_ROOT}/lib")
 

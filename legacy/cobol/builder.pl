@@ -3,7 +3,7 @@
 
 =head1 NAME
 
-builder.pl - Builds legacy/bin/legacy_app from cobol/src/ledger.cob
+builder.pl - Builds legacy/bin/cobol_app from cobol/src/ledger.cob
 
 =head1 SYNOPSIS
 
@@ -78,7 +78,7 @@ my $src   = "$root/cobol/src/ledger.cob";
 my $store = "$root/data/store/cobol";
 my $bin   = "$root/bin";
 my $lib   = "$root/lib";
-my $exe   = "$bin/legacy_app";
+my $exe   = "$bin/cobol_app";
 
 # --- helper ----------------------------------------------------------
 sub die_msg { print STDERR "builder: @_\n"; exit 1 }
@@ -186,7 +186,7 @@ if ( open( my $mf, '>', $manifest ) ) {
 
 # --- verify: with a clean environment, libs must resolve to ../lib ---
 local $ENV{LD_LIBRARY_PATH} = '';
-my $check = `cd "$bin" && ldd ./legacy_app 2>&1`;
+my $check = `cd "$bin" && ldd ./cobol_app 2>&1`;
 for my $need (qw(libcob libgmp)) {
     $check =~ m{\b\Q$need\E\.so\.\d+\s+=>\s+(\S+)}
       or die_msg("$need not resolved");
@@ -195,4 +195,4 @@ for my $need (qw(libcob libgmp)) {
       unless index( $got, "$lib/" ) == 0;
 }
 print "builder: OK -> $exe\n";
-print "builder: TIP -> Run from bin/:  cd bin && ./legacy_app\n";
+print "builder: TIP -> Run from bin/:  cd bin && ./cobol_app\n";
