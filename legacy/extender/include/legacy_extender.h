@@ -19,7 +19,7 @@
  *     lgx_refresh(...)           run the COBOL ledger once (spawns a process)
  *     lgx_monthly_series(...)    then query as often as needed: the queries
  *     lgx_yearly_report(...)     only parse the .dat (cheap, no process)
- *     lgx_summary(...)
+ *     lgx_ledger_summary(...)
  *     lgx_project(...)
  *
  * Output arrays: pass out = NULL, max = 0 to learn the size. When max is too
@@ -161,7 +161,7 @@ LGX_API int lgx_monthly_series(int32_t window, lgx_month* out, size_t max,
 /* One entry per calendar year of the series. */
 LGX_API int lgx_yearly_report(lgx_year* out, size_t max, size_t* count);
 
-LGX_API int lgx_summary(lgx_summary* out);
+LGX_API int lgx_ledger_summary(lgx_summary* out);
 
 /*
  * Projects the running balance: the average monthly balance of the last
