@@ -3,130 +3,282 @@
 
 =head1 NAME
 
-builder.pl - Builds legacy/lib/lib_c_api.so and legacy/bin/c_bridge_test
+builder.pl - build and test the C bridge, C<lib/lib_c_api.so>
 
 =head1 SYNOPSIS
 
-    perl builder.pl [build|test|clean]
+  perl bridge/builder.pl [all|build|test|clean]       (default: all)
 
-*(Note: default action if none is provided is C<build + test>)*
+  CC=gcc-14 perl bridge/builder.pl
 
 =head1 DESCRIPTION
 
-This script automates the compilation and testing process for the C API components of the legacy project.
+Builds, from C<bridge/> into the portable part of the tree:
 
-=head1 PREREQUISITES
+  lib/lib_c_api.so    the C ABI over the COBOL ledger
+  bin/c_bridge_test   its tests
 
-=over 4
+and runs the tests from C<legacy/bin>, like any other executable.
 
-=item *
-
-C<legacy/bin/cobol_app> (Make sure to run C<cobol/builder.pl> first).
-
-=item *
-
-CMake >= 3.16.
-
-=item *
-
-GCC >= 14 (You can specify the path using C<CC=/path/to/gcc-14>).
-
-=back
-
-=head1 ARGUMENTS
+Requires C<bin/cobol_app> (C<perl cobol/builder.pl>), CMake 3.16 or newer and
+B<GCC 14 or newer>. The compiler is taken from C<$CC>, else C<gcc-15>,
+C<gcc-14>, C<gcc>. The CMake build directory is temporary and removed afterwards.
 
 =over 4
 
-=item B<build>
+=item B<build>  configure and compile only
 
-Compiles the C API library and test binaries.
+=item B<test>   run bin/c_bridge_test (must be built)
 
-=item B<test>
+=item B<all>    build, then test
 
-Executes the test suite.
-
-=item B<clean>
-
-Cleans up build artifacts.
+=item B<clean>  remove the two files above (data is never touched)
 
 =back
 
-=head1 EXAMPLES
+=head1 ENVIRONMENT
 
-Building and testing with a specific GCC compiler:
+  CC=gcc-14                 the C compiler (GCC >= 14)
+  LEGACY_ALLOW_ROOT=1       allow running as root (refused by default)
 
-    CC=/opt/gcc-14/bin/gcc perl builder.pl build
+Compiler flags and library paths inherited from the caller are discarded.
 
-Running only the tests:
+=head1 EXIT STATUS
 
-    perl builder.pl test
-
-Performing a clean build:
-
-    perl builder.pl clean
+0 success, 1 failure (message on stderr), 2 usage error.
 
 =cut
 
 use strict;
 use warnings;
 use Cwd            qw(abs_path);
-use File::Basename qw(dirname);
+use File::Basename qw(dirname basename);
+use File::Copy     qw(copy);
+use File::Path     qw(make_path);
 use File::Temp     qw(tempdir);
 
-# --- paths -----------------------------------------------------------
-my $here = abs_path( dirname(__FILE__) );
-my $root = abs_path("$here/..");
+# ------------------------------------------------------------------ main
 
-# --- helper ----------------------------------------------------------
-my $mode = shift // 'all';
-die "usage: builder.pl [build|test|clean]\n"
-  unless $mode =~ /^(all|build|test|clean)$/;
+sub main {
+    my $mode = parse_args(@_);
+    require_unprivileged();
+    scrub_environment();
+
+    my $ctx = build_context();
+    return do_clean($ctx) if $mode eq 'clean';
+
+    check_prerequisites( $ctx, $mode );
+    find_toolchain($ctx) if $mode ne 'test';
+    do_build($ctx)       if $mode ne 'test';
+    do_test($ctx)        if $mode ne 'build';
+    return 0;
+}
+
+# ----------------------------------------------------------------- modes
+
+sub do_clean {
+    my ($ctx) = @_;
+    unlink $ctx->{test}, $ctx->{library};
+    print "builder: cleaned\n";
+    return 0;
+}
+
+sub do_build {
+    my ($ctx) = @_;
+    cmake_build(
+        source  => $ctx->{here},
+        prefix  => 'legacy_bridge',
+        cmake   => $ctx->{cmake},
+        defines => { CMAKE_C_COMPILER => $ctx->{cc} },
+    );
+    print "builder: built lib/lib_c_api.so and bin/c_bridge_test\n";
+    return 0;
+}
+
+sub do_test {
+    my ($ctx) = @_;
+    return run_test_binary( $ctx->{root}, 'c_bridge_test' );
+}
+
+# ----------------------------------------------------- component specifics
+
+sub build_context {
+    my $here = abs_path( dirname(__FILE__) );
+    my $root = abs_path("$here/..");
+    return {
+        here    => $here,
+        root    => $root,
+        bin     => "$root/bin",
+        lib     => "$root/lib",
+        test    => "$root/bin/c_bridge_test",
+        library => "$root/lib/lib_c_api.so",
+    };
+}
+
+# The bridge drives the COBOL executable, so it must exist first.
+sub check_prerequisites {
+    my ( $ctx, $mode ) = @_;
+    require_artifact( $ctx->{root}, 'bin/cobol_app', 'perl cobol/builder.pl' );
+    return 1 if $mode eq 'test';
+    return ensure_writable_dirs( $ctx->{bin}, $ctx->{lib} );
+}
+
+# cmake, and a GCC >= 14.
+sub find_toolchain {
+    my ($ctx) = @_;
+    $ctx->{cmake} = find_in_path('cmake') or fail('cmake not found');
+
+    my @candidates =
+      grep { defined && length } ( $ENV{CC}, qw(gcc-15 gcc-14 gcc) );
+    my ( $cc, $major ) = pick_compiler( 14, @candidates );
+    fail(   'GCC >= 14 not found (tried: '
+          . join( ' ', @candidates )
+          . '); set CC=/path/to/gcc-14' )
+      unless $cc;
+    print "builder: using $cc (GCC $major)\n";
+    $ctx->{cc} = $cc;
+    return 1;
+}
+
+# ---------------------------------------------------------------- shared
+
+# BEGIN shared-builder-helpers
+# Identical in every builder (cobol, bridge, extender): `setup.pl check`
+# verifies it. Safe by construction: no shell, no root, no inherited flags.
+
+# Mode from the command line: all | build | test | clean.
+sub parse_args {
+    my @args = @_;
+    my $mode = @args ? shift @args : 'all';
+    return $mode if $mode =~ /^(?:all|build|test|clean)$/ && !@args;
+    print STDERR "usage: builder.pl [all|build|test|clean]\n";
+    exit 2;
+}
 
 sub fail { print STDERR "builder: @_\n"; exit 1 }
 
-# --- run -----------------------------------------------------------
-sub run  { print "builder: @_\n"; system(@_) == 0 or fail("failed: @_") }
-
-# --- clean -----------------------------------------------------------
-if ( $mode eq 'clean' ) {
-    unlink "$root/bin/c_bridge_test", "$root/lib/lib_c_api.so";
-    print "builder: cleaned\n";
-    exit 0;
+# Runs a command in list form (never through a shell); a failure stops the build.
+sub run {
+    my @cmd = @_;
+    print "builder: @cmd\n";
+    system(@cmd) == 0 or fail("failed: @cmd");
+    return 1;
 }
 
-# --- main ------------------------------------------------------------
-# 1. the COBOL executable must exist: the bridge drives it
-fail("bin/cobol_app not found - run: perl cobol/builder.pl")
-  unless -x "$root/bin/cobol_app";
-
-if ( $mode ne 'test' ) {
-    # 2. tools and GCC >= 14
-    my ($cmake) = grep { -x $_ } map { "$_/cmake" } split /:/, $ENV{PATH} // '';
-    fail("cmake not found") unless $cmake;
-
-    my @cands = grep { defined && length } ( $ENV{CC}, qw(gcc-15 gcc-14 gcc) );
-    my ( $cc, $major );
-    for my $c (@cands) {
-        my $v = `$c -dumpversion 2>/dev/null` or next;
-        ($major) = $v =~ /^(\d+)/ or next;
-        if ( $major >= 14 ) { $cc = $c; last }
+# Output of a command (stdout and stderr merged) and its exit code. List form.
+sub capture {
+    my @cmd = @_;
+    my $pid = open( my $fh, '-|' ) // fail("cannot fork: $!");
+    if ( !$pid ) {
+        open( STDERR, '>&', \*STDOUT );
+        exec { $cmd[0] } @cmd or exit 127;
     }
-    fail("GCC >= 14 not found (tried: @cands); set CC=/path/to/gcc-14")
-      unless $cc;
-    print "builder: using $cc (GCC $major)\n";
+    local $/;
+    my $out = <$fh>;
+    close $fh;
+    return ( $? >> 8, $out // '' );
+}
 
-    # 3. out-of-tree build dir, removed afterwards
-    my $build = tempdir( 'legacy_bridge_XXXXXX', TMPDIR => 1, CLEANUP => 1 );
-    run( $cmake, '-S', $here, '-B', $build, "-DCMAKE_C_COMPILER=$cc",
+# Build outputs must not end up owned by root: a normal user could no longer
+# rebuild or clean them. Nothing here ever needs privileges.
+sub require_unprivileged {
+    return 1 if $> != 0;
+    if ( ( $ENV{LEGACY_ALLOW_ROOT} // '' ) eq '1' ) {
+        print STDERR
+"builder: WARNING running as root (LEGACY_ALLOW_ROOT=1): the files will be owned by root\n";
+        return 1;
+    }
+    fail(   "refusing to run as root: the files would be owned by root.\n"
+          . "builder: run as a normal user; no privilege is needed (LEGACY_ALLOW_ROOT=1 overrides, e.g. in a throw-away container)"
+    );
+}
+
+# Same inputs, same build: nothing inherited from the caller may change it.
+sub scrub_environment {
+    delete @ENV{
+        qw(CFLAGS CXXFLAGS CPPFLAGS LDFLAGS LIBRARY_PATH CPATH C_INCLUDE_PATH
+          CPLUS_INCLUDE_PATH LD_LIBRARY_PATH LD_PRELOAD COB_CFLAGS COB_LDFLAGS)
+    };
+    $ENV{LC_ALL} = 'C';
+    umask 022;
+    return 1;
+}
+
+# A command taken from the environment (CC, CXX, COBC...): plain characters only.
+sub valid_command {
+    my ($cmd) = @_;
+    return defined $cmd && $cmd =~ m{^[A-Za-z0-9_+./-]+$};
+}
+
+# Full path of an executable found in PATH, or undef.
+sub find_in_path {
+    my ($name) = @_;
+    for my $dir ( split /:/, $ENV{PATH} // '' ) {
+        next                if $dir eq '';
+        return "$dir/$name" if -f "$dir/$name" && -x _;
+    }
+    return;
+}
+
+# Major version of a GCC command, or undef.
+sub compiler_major {
+    my ($cmd) = @_;
+    return unless valid_command($cmd);
+    my ( $rc, $out ) = capture( $cmd, '-dumpversion' );
+    return ( $rc == 0 && $out =~ /^(\d+)/ ) ? $1 : undef;
+}
+
+# First candidate that is a GCC of at least $min: ($command, $major), or ().
+sub pick_compiler {
+    my ( $min, @candidates ) = @_;
+    for my $cmd ( grep { defined && length } @candidates ) {
+        my $major = compiler_major($cmd) or next;
+        return ( $cmd, $major ) if $major >= $min;
+    }
+    return;
+}
+
+# Creates the directories a build writes to and checks they are writable.
+sub ensure_writable_dirs {
+    my @dirs = @_;
+    make_path(@dirs);
+    for my $dir (@dirs) {
+        -d $dir && -w $dir
+          or fail(
+            "$dir is not writable by this user; fix the ownership of the tree");
+    }
+    return 1;
+}
+
+# An artifact another component must have produced first.
+sub require_artifact {
+    my ( $root, $relative, $hint ) = @_;
+    -e "$root/$relative" or fail("$relative not found - run: $hint");
+    return 1;
+}
+
+# Out-of-tree CMake build in a private temporary directory, removed afterwards.
+sub cmake_build {
+    my (%a)     = @_;    # source, prefix, cmake, defines => { NAME => value }
+    my $build   = tempdir( "$a{prefix}_XXXXXX", TMPDIR => 1, CLEANUP => 1 );
+    my @defines = map { "-D$_=$a{defines}{$_}" } sort keys %{ $a{defines} };
+    run( $a{cmake}, '-S', $a{source}, '-B', $build, @defines,
         '-DCMAKE_BUILD_TYPE=Release' );
-    run( $cmake, '--build', $build, '-j' );
-    print "builder: built lib/lib_c_api.so and bin/c_bridge_test\n";
+    run( $a{cmake}, '--build', $build, '-j' );
+    return 1;
 }
 
-# 4. tests always run from legacy/bin, like any other executable
-if ( $mode ne 'build' ) {
-    fail("bin/c_bridge_test not found - run build first")
-      unless -x "$root/bin/c_bridge_test";
-    chdir "$root/bin" or fail("chdir: $!");
-    run('./c_bridge_test');
+# Runs ./NAME from legacy/bin, like any user would.
+sub run_test_binary {
+    my ( $root, $name ) = @_;
+    -x "$root/bin/$name" or fail("bin/$name not found - run the build first");
+    chdir "$root/bin"    or fail("chdir $root/bin: $!");
+    return run("./$name");
 }
+
+# END shared-builder-helpers
+
+# ------------------------------------------------------------------ go
+
+exit main(@ARGV) unless caller;
+1;
