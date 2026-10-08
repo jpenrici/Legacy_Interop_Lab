@@ -6,7 +6,7 @@
 //         lines, gaps, a very deep path. The real data is never touched.
 // Part 4  The C ABI (lgx_*) must agree with the C++ core, byte for byte.
 
-#include "legacy_extender.hpp"
+#include "extender.hpp"
 
 #include <cstdio>
 #include <cstdlib>
@@ -228,7 +228,7 @@ static void test_real_tree()
     }
     CHECK(ledger->records.size() == 7, "5 M + 2 Y records");
     CHECK(ledger->status == StatusCode::Ok, "no rejected lines");
-    CHECK(ledger->log.find("ACCEPTED=0000010") != std::string::npos, "the legacy_app log is kept");
+    CHECK(ledger->log.find("ACCEPTED=0000010") != std::string::npos, "the cobol_app log is kept");
     CHECK(ledger->summary.lines_accepted == 10 && ledger->summary.balance_cents == 3263000, "trailer");
 
     auto small = LedgerClient::load_data(1); // starts with room for one record
@@ -345,7 +345,7 @@ static void test_scenarios(const std::string& real_home)
     if (e) {
         setenv("LEGACY_HOME", e, 1);
         auto r = LedgerClient::run_app();
-        CHECK(!r && r.error().code == StatusCode::NotFound, "no legacy_app in an empty home");
+        CHECK(!r && r.error().code == StatusCode::NotFound, "no cobol_app in an empty home");
         remove_tree(e);
     }
     setenv("LEGACY_HOME", "/nonexistent/legacy", 1);

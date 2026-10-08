@@ -1,4 +1,4 @@
-// legacy/extender/include/legacy_extender.hpp
+// legacy/extender/include/extender.hpp
 //
 // C++23 core of the legacy extender. Two layers:
 //
@@ -8,13 +8,13 @@
 //                  moving average, growth, yearly report, summary, projection.
 //                  No I/O, so it is testable with synthetic data.
 //
-// The C ABI for other languages (legacy_extender.h) is a thin facade over
+// The C ABI for other languages (extender.h) is a thin facade over
 // this (src/ffi.cpp). Money is integer cents, growth is in basis points.
 
 #pragma once
 
-#include "api.h"
-#include "legacy_extender.h"
+#include "bridge.h"
+#include "extender.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -54,7 +54,7 @@ enum class StatusCode : int {
 struct Error {
     StatusCode code;
     std::string message;
-    std::string detail; // extra context, e.g. the legacy_app log
+    std::string detail; // extra context, e.g. the cobol_app log
 
     [[nodiscard]] static auto from_c(int status, std::string detail = {}) -> Error;
 };
@@ -70,7 +70,7 @@ using Year = lgx_year;
 using Stats = lgx_summary;
 using Projection = lgx_projection;
 
-// Outcome of running legacy_app: Ok, or WarningRejected (data is valid).
+// Outcome of running cobol_app: Ok, or WarningRejected (data is valid).
 struct RunReport {
     StatusCode status;
     std::string log;
@@ -80,7 +80,7 @@ struct RunReport {
 struct Ledger {
     std::vector<Record> records; // 'M' and 'Y' records, in file order
     Summary summary {}; // trailer: totals and line counts
-    std::string log; // legacy_app output (empty when only loaded)
+    std::string log; // cobol_app output (empty when only loaded)
     StatusCode status { StatusCode::Ok }; // Ok or WarningRejected
 };
 
@@ -94,7 +94,7 @@ public:
     // Resolved <home> directory of the legacy tree.
     [[nodiscard]] static auto get_home() -> Result<std::string>;
 
-    // Runs legacy_app. Exit codes 1, 2 and 4 are errors (code + log in the
+    // Runs cobol_app. Exit codes 1, 2 and 4 are errors (code + log in the
     // Error); only 0 and 3 (some lines rejected) succeed.
     [[nodiscard]] static auto run_app() -> Result<RunReport>;
 
@@ -133,7 +133,7 @@ namespace Analytics {
 
     [[nodiscard]] auto summarize(std::span<const Month> series, const Summary& trailer) -> Result<Stats>;
 
-    // Flat projection of the running balance (see legacy_extender.h).
+    // Flat projection of the running balance (see extender.h).
     [[nodiscard]] auto project(std::span<const Month> series, int basis_months,
         int horizon) -> Result<std::vector<Projection>>;
 

@@ -1,10 +1,10 @@
-// legacy/extender/src/analytics.cpp
+// legacy/extender/src/extender_analytics.cpp
 //
 // Pure calculations over the records COBOL produced. No I/O.
 // All arithmetic is on int64 cents with overflow checks: a result is either
 // exact (rounded half away from zero where a division is involved) or an error.
 
-#include "legacy_extender.hpp"
+#include "extender.hpp"
 
 #include <algorithm>
 #include <limits>

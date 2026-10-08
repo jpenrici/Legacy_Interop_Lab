@@ -1,6 +1,6 @@
-// legacy/extender/src/legacy_extender.cpp
+// legacy/extender/src/extender.cpp
 
-#include "legacy_extender.hpp"
+#include "extender.hpp"
 
 #include <algorithm>
 #include <array>
@@ -66,7 +66,7 @@ auto LedgerClient::run_app() -> Result<RunReport>
     std::string log(log_buf.data());
 
     // 0 = ok, 3 = done with rejected lines. Everything else is a failure:
-    // 1, 2, 4 are legacy_app errors, negative values are bridge errors.
+    // 1, 2, 4 are cobol_app errors, negative values are bridge errors.
     if (res != LG_OK && res != LG_WARN_REJECTED) {
         return std::unexpected(Error::from_c(res, std::move(log)));
     }

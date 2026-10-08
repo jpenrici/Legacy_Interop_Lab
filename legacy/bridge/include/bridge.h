@@ -1,7 +1,7 @@
-// legacy/bridge/include/api.h
+// legacy/bridge/include/bridge.h
 
 /***
- * @file api.h
+ * @file bridge.h
  * @brief C bridge to the COBOL ledger (cobol_app).
  *
  * Provides a plain C ABI, flat structs, and fixed-size types designed for

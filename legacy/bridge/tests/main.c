@@ -2,7 +2,7 @@
 
 /**
  * @file main.c
- * @brief Test runner for the C API bridge (c_api_test).
+ * @brief Test runner for the C API bridge (bridge_test).
  *
  * Drives C<cobol_app> through C<lib_c_api>.
  *
@@ -15,7 +15,7 @@
  */
 
 #define _GNU_SOURCE
-#include "api.h"
+#include "bridge.h"
 
 #include <limits.h>
 #include <stdio.h>

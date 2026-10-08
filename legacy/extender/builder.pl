@@ -16,7 +16,7 @@ builder.pl - build and test the C++23 extender, C<lib/lib_cpp_api.so>
 Builds, from C<extender/> into the portable part of the tree:
 
   lib/lib_cpp_api.so   C ABI (lgx_*) for bindings
-  bin/cpp_extender_test     tests of the C++ core and of the C ABI
+  bin/extender_test    tests of the C++ core and of the C ABI
 
 and runs the tests from C<legacy/bin>, like any other executable.
 
@@ -88,12 +88,12 @@ sub do_build {
     my ($ctx) = @_;
     cmake_build(
         source  => $ctx->{here},
-        prefix  => 'legacy_extender',
+        prefix  => 'extender',
         cmake   => $ctx->{cmake},
         defines => { CMAKE_CXX_COMPILER => $ctx->{cxx} },
     );
     print
-"builder: built lib/lib_cpp_api.so and bin/cpp_extender_test\n";
+"builder: built lib/lib_cpp_api.so and bin/extender_test\n";
     return 0;
 }
 
@@ -112,7 +112,7 @@ sub build_context {
         root    => $root,
         bin     => "$root/bin",
         lib     => "$root/lib",
-        test    => "$root/bin/cpp_extender_test",
+        test    => "$root/bin/extender_test",
         library => "$root/lib/lib_cpp_api.so",
     };
 }

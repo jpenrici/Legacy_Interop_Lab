@@ -132,14 +132,14 @@ my @COMPONENTS = (
         },
         requires => [
             'bridge/builder.pl',    'bridge/CMakeLists.txt',
-            'bridge/include/api.h', 'bridge/src/api.c',
+            'bridge/include/bridge.h', 'bridge/src/bridge.c',
             'bridge/tests/main.c'
         ],
         artifacts => [
-            { path => 'bin/c_bridge_test',   label => 'bridge test program' },
+            { path => 'bin/bridge_test',   label => 'bridge test program' },
             { path => 'lib/lib_c_api.so', label => 'bridge library' },
         ],
-        run => [ { exe => 'c_bridge_test', ok => [0], warn => {} } ],
+        run => [ { exe => 'bridge_test', ok => [0], warn => {} } ],
         env =>
           sub { my %e; $e{CC} = $_[0]{cc} if defined $_[0]{cc}; return \%e },
     },
@@ -160,16 +160,16 @@ my @COMPONENTS = (
         requires => [
             'extender/builder.pl',
             'extender/CMakeLists.txt',
-            'extender/include/legacy_extender.h',
-            'extender/include/legacy_extender.hpp',
-            'extender/src/legacy_extender.cpp',
-            'extender/src/analytics.cpp',
-            'extender/src/ffi.cpp',
+            'extender/include/extender.h',
+            'extender/include/extender.hpp',
+            'extender/src/extender.cpp',
+            'extender/src/extender_analytics.cpp',
+            'extender/src/extender_ffi.cpp',
             'extender/tests/main.cpp'
         ],
         artifacts => [
             {
-                path  => 'bin/cpp_extender_test',
+                path  => 'bin/extender_test',
                 label => 'extender test program'
             },
             {
@@ -177,7 +177,7 @@ my @COMPONENTS = (
                 label => 'extender library'
             },
         ],
-        run => [ { exe => 'cpp_extender_test', ok => [0], warn => {} } ],
+        run => [ { exe => 'extender_test', ok => [0], warn => {} } ],
         env =>
           sub { my %e; $e{CXX} = $_[0]{cxx} if defined $_[0]{cxx}; return \%e },
     },

@@ -1,7 +1,7 @@
-// legacy/extender/include/legacy_extender.h
+// legacy/extender/include/extender.h
 
 /*
- * legacy_extender.h - C ABI of the legacy extender (lib/lib_legacy_extender.so)
+ * legacy_extender.h - C ABI of the legacy extender (lib/lib_cpp_api.so)
  *
  * This is the contract for bindings (Python ctypes, Rust, Node, ...): plain C,
  * flat structs of fixed-size integers, no C++ types, no exceptions, no global
@@ -26,7 +26,7 @@
  *
  * Output arrays: pass out = NULL, max = 0 to learn the size. When max is too
  * small the call returns LGX_ERR_CAPACITY and *count holds the REQUIRED length.
- * The tree (<home>/bin/legacy_app, <home>/data/...) is found at run time from
+ * The tree (<home>/bin/cobol_app, <home>/data/...) is found at run time from
  * the location of lib_c_api.so, exactly as in the C bridge; $LEGACY_HOME
  * overrides it.
  *
@@ -56,13 +56,13 @@ extern "C" {
  */
 enum lgx_status {
     LGX_OK = 0,
-    LGX_ERR_COBOL_INPUT = 1, /*    legacy_app: cannot open the input CSV   */
-    LGX_ERR_COBOL_OUTPUT = 2, /*   legacy_app: cannot write the .dat       */
+    LGX_ERR_COBOL_INPUT = 1, /*    cobol_app: cannot open the input CSV   */
+    LGX_ERR_COBOL_OUTPUT = 2, /*   cobol_app: cannot write the .dat       */
     LGX_WARN_REJECTED = 3, /*      done, some CSV lines were rejected      */
-    LGX_ERR_COBOL_OVERFLOW = 4, /* legacy_app: amount overflow, aborted    */
-    LGX_ERR_NOT_FOUND = -1, /*     legacy_app not found                    */
-    LGX_ERR_SPAWN = -2, /*         cannot start legacy_app                 */
-    LGX_ERR_SIGNAL = -3, /*        legacy_app killed by a signal           */
+    LGX_ERR_COBOL_OVERFLOW = 4, /* cobol_app: amount overflow, aborted    */
+    LGX_ERR_NOT_FOUND = -1, /*     cobol_app not found                    */
+    LGX_ERR_SPAWN = -2, /*         cannot start cobol_app                 */
+    LGX_ERR_SIGNAL = -3, /*        cobol_app killed by a signal           */
     LGX_ERR_DATA = -4, /*          .dat missing, corrupt or inconsistent   */
     LGX_ERR_ARG = -5, /*           bad argument                            */
     LGX_ERR_CAPACITY = -6, /*      output array too small (*count = needed)*/
@@ -133,7 +133,7 @@ static_assert(sizeof(lgx_year) == 64, "lgx_year ABI");
 static_assert(sizeof(lgx_summary) == 88, "lgx_summary ABI");
 static_assert(sizeof(lgx_projection) == 24, "lgx_projection ABI");
 #else
-_Static_assert(sizeof(lgx_month) == 72, "lgx_month ABI");
+_Static_assert(sizeof(lgx_month) == 72, "lgx_month ABI"); // C assert
 _Static_assert(sizeof(lgx_year) == 64, "lgx_year ABI");
 _Static_assert(sizeof(lgx_summary) == 88, "lgx_summary ABI");
 _Static_assert(sizeof(lgx_projection) == 24, "lgx_projection ABI");
@@ -147,7 +147,7 @@ LGX_API const char* lgx_strerror(int status);
 LGX_API int lgx_home(char* buf, size_t size);
 
 /*
- * Runs the COBOL ledger (legacy_app) and waits for it. log (optional) gets its
+ * Runs the COBOL ledger (cobol_app) and waits for it. log (optional) gets its
  * output. Returns LGX_OK, LGX_WARN_REJECTED (data valid) or an error; unlike
  * the raw bridge, exit codes 1, 2 and 4 are errors.
  */

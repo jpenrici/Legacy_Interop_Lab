@@ -1,9 +1,9 @@
 # legacy/extender/CMakeLists.txt
 #
 # Produces, all inside the portable part of the tree: lib/lib_cpp_api.so C ABI
-# (lgx_*) for bindings; self-contained bin/cpp_extender_test tests of the C++
-# core and of the C ABI The C bridge (lib/lib_c_api.so) is built by its own
-# project and only imported.
+# (lgx_*) for bindings; self-contained bin/extender_test tests of the C++ core
+# and of the C ABI The C bridge (lib/lib_c_api.so) is built by its own project
+# and only imported.
 
 cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
 
@@ -43,7 +43,7 @@ set_target_properties(
              INTERFACE_INCLUDE_DIRECTORIES "${LEGACY_ROOT}/bridge/include")
 
 # --- C++23 core (static): LedgerClient + Analytics --------------------------
-add_library(extender_core STATIC src/legacy_extender.cpp src/analytics.cpp)
+add_library(extender_core STATIC src/extender.cpp src/extender_analytics.cpp)
 set_target_properties(
   extender_core
   PROPERTIES POSITION_INDEPENDENT_CODE ON
@@ -57,7 +57,7 @@ target_compile_options(extender_core PRIVATE ${EXT_WARN} ${EXT_HARDEN})
 # Only lgx_* is exported: the core and the static libstdc++ are hidden, so the
 # library cannot interpose on (or be interposed by) another C++ runtime that
 # lives in the same process, e.g. in a Python interpreter.
-add_library(legacy_extender SHARED src/ffi.cpp)
+add_library(legacy_extender SHARED src/extender_ffi.cpp)
 set_target_properties(
   legacy_extender
   PROPERTIES OUTPUT_NAME _cpp_api # -> lib_cpp_api.so
@@ -73,19 +73,19 @@ target_link_libraries(legacy_extender PRIVATE extender_core)
 target_link_options(legacy_extender PRIVATE ${EXT_STATIC_RUNTIME}
                     -Wl,--exclude-libs,ALL -Wl,-z,defs)
 
-# --- bin/cpp_extender_test -----------------------------------------------
-add_executable(cpp_extender_test tests/main.cpp)
+# --- bin/extender_test -----------------------------------------------
+add_executable(extender_test tests/main.cpp)
 set_target_properties(
-  cpp_extender_test
+  extender_test
   PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${LEGACY_ROOT}/bin"
              BUILD_WITH_INSTALL_RPATH ON
              INSTALL_RPATH "\$ORIGIN/../lib")
-target_compile_options(cpp_extender_test PRIVATE ${EXT_WARN} ${EXT_HARDEN})
-target_link_libraries(cpp_extender_test PRIVATE extender_core legacy_extender)
-target_link_options(cpp_extender_test PRIVATE ${EXT_STATIC_RUNTIME})
+target_compile_options(extender_test PRIVATE ${EXT_WARN} ${EXT_HARDEN})
+target_link_libraries(extender_test PRIVATE extender_core legacy_extender)
+target_link_options(extender_test PRIVATE ${EXT_STATIC_RUNTIME})
 
 enable_testing()
 add_test(
-  NAME cpp_extender_test
-  COMMAND cpp_extender_test
+  NAME extender_test
+  COMMAND extender_test
   WORKING_DIRECTORY "${LEGACY_ROOT}/bin")

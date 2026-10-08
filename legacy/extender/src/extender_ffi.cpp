@@ -1,12 +1,12 @@
-// legacy/extender/src/ffi.cpp
+// legacy/extender/src/extender_ffi.cpp
 //
-// C ABI facade (legacy_extender.h) over the C++ core. Rules of this file:
+// C ABI facade (extender.h) over the C++ core. Rules of this file:
 //   - nothing C++ crosses the boundary: only the plain lgx_* structs and ints
 //   - no exception ever escapes (every entry point is noexcept + guarded)
 //   - no global state: each query re-reads the .dat, so it is always coherent
-//     with what legacy_app last wrote
+//     with what cobol_app last wrote
 
-#include "legacy_extender.hpp"
+#include "extender.hpp"
 
 #include <algorithm>
 #include <cstring>

@@ -16,7 +16,7 @@ builder.pl - build and test the C bridge, C<lib/lib_c_api.so>
 Builds, from C<bridge/> into the portable part of the tree:
 
   lib/lib_c_api.so    the C ABI over the COBOL ledger
-  bin/c_bridge_test   its tests
+  bin/bridge_test   its tests
 
 and runs the tests from C<legacy/bin>, like any other executable.
 
@@ -28,7 +28,7 @@ C<gcc-14>, C<gcc>. The CMake build directory is temporary and removed afterwards
 
 =item B<build>  configure and compile only
 
-=item B<test>   run bin/c_bridge_test (must be built)
+=item B<test>   run bin/bridge_test (must be built)
 
 =item B<all>    build, then test
 
@@ -87,17 +87,17 @@ sub do_build {
     my ($ctx) = @_;
     cmake_build(
         source  => $ctx->{here},
-        prefix  => 'legacy_bridge',
+        prefix  => 'bridge',
         cmake   => $ctx->{cmake},
         defines => { CMAKE_C_COMPILER => $ctx->{cc} },
     );
-    print "builder: built lib/lib_c_api.so and bin/c_bridge_test\n";
+    print "builder: built lib/lib_c_api.so and bin/bridge_test\n";
     return 0;
 }
 
 sub do_test {
     my ($ctx) = @_;
-    return run_test_binary( $ctx->{root}, 'c_bridge_test' );
+    return run_test_binary( $ctx->{root}, 'bridge_test' );
 }
 
 # ----------------------------------------------------- component specifics
@@ -110,7 +110,7 @@ sub build_context {
         root    => $root,
         bin     => "$root/bin",
         lib     => "$root/lib",
-        test    => "$root/bin/c_bridge_test",
+        test    => "$root/bin/bridge_test",
         library => "$root/lib/lib_c_api.so",
     };
 }

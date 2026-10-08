@@ -1,7 +1,7 @@
-// legacy/bridge/src/api.c
+// legacy/bridge/src/bridge.c
 
 #define _GNU_SOURCE
-#include "api.h"
+#include "bridge.h"
 
 #include <dlfcn.h>
 #include <errno.h>
