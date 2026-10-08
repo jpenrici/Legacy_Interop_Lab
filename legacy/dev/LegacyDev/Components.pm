@@ -68,7 +68,7 @@ sub data_dirs {
     return qw(bin lib data/input/cobol data/store/cobol data/backup);
 }
 
-# What the exit codes of legacy_app mean (shown when a run fails).
+# What the exit codes of cobol_app mean (shown when a run fails).
 sub exit_meaning {
     return (
         1 => 'cannot open the input CSV',
@@ -90,7 +90,7 @@ my @COMPONENTS = (
             'data/input/cobol/cb_data.csv'
         ],
         artifacts => [
-            { path => 'bin/legacy_app', label => 'COBOL executable' },
+            { path => 'bin/cobol_app', label => 'COBOL executable' },
             {
                 globs   => [ 'lib/libcob.so.*', 'lib/libgmp.so.*' ],
                 label   => 'bundled libs',
@@ -99,7 +99,7 @@ my @COMPONENTS = (
         ],
         run => [
             {
-                exe  => 'legacy_app',
+                exe  => 'cobol_app',
                 ok   => [0],
                 warn => { 3 => 'some input lines were rejected' }
             }
@@ -136,10 +136,10 @@ my @COMPONENTS = (
             'bridge/tests/main.c'
         ],
         artifacts => [
-            { path => 'bin/c_api_test',   label => 'bridge test program' },
+            { path => 'bin/c_bridge_test',   label => 'bridge test program' },
             { path => 'lib/lib_c_api.so', label => 'bridge library' },
         ],
-        run => [ { exe => 'c_api_test', ok => [0], warn => {} } ],
+        run => [ { exe => 'c_bridge_test', ok => [0], warn => {} } ],
         env =>
           sub { my %e; $e{CC} = $_[0]{cc} if defined $_[0]{cc}; return \%e },
     },
@@ -169,15 +169,15 @@ my @COMPONENTS = (
         ],
         artifacts => [
             {
-                path  => 'bin/legacy_extender_test',
+                path  => 'bin/cpp_extender_test',
                 label => 'extender test program'
             },
             {
-                path  => 'lib/lib_legacy_extender.so',
+                path  => 'lib/lib_cpp_api.so',
                 label => 'extender library'
             },
         ],
-        run => [ { exe => 'legacy_extender_test', ok => [0], warn => {} } ],
+        run => [ { exe => 'cpp_extender_test', ok => [0], warn => {} } ],
         env =>
           sub { my %e; $e{CXX} = $_[0]{cxx} if defined $_[0]{cxx}; return \%e },
     },

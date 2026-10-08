@@ -21,7 +21,7 @@ use File::Find  ();
 
 our @EXPORT_OK = qw(
   info warnx fatal step
-  run run_logged capture capture_status can_run
+  run run_logged capture capture_status can_run child_perl
   is_root path_writable owned_by_me
   shell_quote priv_method priv_describe priv_batch priv
   confirm gcc_major os_release pkg_missing apt_ensure
@@ -127,6 +127,16 @@ sub can_run {
         return $p if -f $p && -x _;
     }
     return;
+}
+
+# Runs a perl script with extra environment variables; returns its exit code
+# (1 when it died from a signal). List form, no shell.
+sub child_perl {
+    my ( $script, $env, @args ) = @_;
+    -f $script or fatal("missing script: $script");
+    local @ENV{ keys %$env } = values %$env if $env && %$env;
+    my $rc = system( $^X, $script, @args );
+    return $rc == -1 ? 1 : ( $rc & 127 ) ? 1 : $rc >> 8;
 }
 
 # ---------------------------------------------------------- privileges

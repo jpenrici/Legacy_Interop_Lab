@@ -97,9 +97,9 @@ bridge, C++ extender) with the toolchain found by C<check>.
 Runs the executables of the manifest from C<legacy/bin> with a scrubbed
 environment (no LD_LIBRARY_PATH, COBOL_HOME, COB_*, LEGACY_HOME), which proves
 the tree is self-contained. Before that it checks with C<ldd> that every
-library resolves inside C<legacy/lib>. Exit codes of C<legacy_app>: 0 ok,
+library resolves inside C<legacy/lib>. Exit codes of C<cobol_app>: 0 ok,
 1 input file, 2 output file, 3 done with rejected lines, 4 overflow. Naming
-executables (C<setup.pl run legacy_app>) runs only those. The test programs
+executables (C<setup.pl run cobol_app>) runs only those. The test programs
 regenerate C<data/store/cobol/cb_data.dat>.
 
 =item B<all>
@@ -128,7 +128,7 @@ run this script again).
   perl dev/setup.pl build --cobol-home /opt/gnucobol-3.1.2
   perl dev/setup.pl all --system-cobol       # use the apt GnuCOBOL, with warnings
   perl dev/setup.pl check --system-cobol --strict
-  perl dev/setup.pl run legacy_extender_test
+  perl dev/setup.pl run cpp_extender_test
 
 =cut
 

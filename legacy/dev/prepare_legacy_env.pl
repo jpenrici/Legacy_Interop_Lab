@@ -29,7 +29,9 @@ Two toolchains, one per side of the project:
 =item * B<COBOL side> - GCC 13 (C<gcc-13>) and GnuCOBOL built from source
 into C</opt/gnucobol-V>. C<cobc> translates COBOL to C and calls GCC 13.
 
-=item * B<C bridge> - GCC 14 or newer and CMake (the bridge refuses older GCC).
+=item * B<C bridge> - GCC 14 or newer and CMake 3.16 or newer (the bridge refuses older GCC).
+
+=item * B<C++ extender> - g++ 14 or newer and CMake 3.25 or newer.
 
 =back
 
@@ -62,18 +64,19 @@ use Getopt::Long qw(GetOptionsFromArray);
 use Pod::Usage;
 use Cwd       qw(abs_path);
 use LegacyDev qw(
-  info warnx fatal step can_run gcc_major os_release apt_ensure pkg_missing
+  info warnx fatal step can_run gcc_major capture_status os_release apt_ensure pkg_missing
   priv_describe
 );
 
 # ---------------------------------------------------------------- data
 
 my $COBOL_CC       = 'gcc-13';    # compiler cobc calls
-my $BRIDGE_MIN_GCC = 14;          # bridge/CMakeLists.txt requirement
+my $NATIVE_MIN_GCC = 14;     # bridge/CMakeLists.txt and extender/CMakeLists.txt
+my $CMAKE_MIN      = '3.25'; # extender/CMakeLists.txt (the bridge needs 3.16)
 
 my @COBOL_PKGS =
   qw(gcc-13 build-essential libgmp-dev curl xz-utils gnupg ca-certificates);
-my @BRIDGE_PKGS = qw(gcc-14 cmake);
+my @NATIVE_PKGS = qw(gcc-14 g++-14 cmake);    # C bridge and C++ extender
 
 my $INSTALLER = "$RealBin/gnucobol_install.pl";
 my $PRIV      = 'auto';
@@ -132,13 +135,23 @@ sub installer {
     return $rc == -1 ? 1 : ( $rc & 127 ) ? 1 : $rc >> 8;
 }
 
-# First compiler that meets the bridge requirement, or undef.
-sub bridge_compiler {
-    for my $cc (qw(gcc-15 gcc-14 gcc)) {
+# First of the candidates that is a GCC of at least $NATIVE_MIN_GCC: ($cmd, $major).
+sub native_compiler {
+    for my $cc (@_) {
         my $v = gcc_major($cc);
-        return ( $cc, $v ) if $v && $v >= $BRIDGE_MIN_GCC;
+        return ( $cc, $v ) if $v && $v >= $NATIVE_MIN_GCC;
     }
     return;
+}
+
+# "3.28.3" >= "3.25" ?
+sub cmake_at_least {
+    my ($need) = @_;
+    my ( $rc, $out ) = capture_status( 'cmake', '--version' );
+    return 0 unless $rc == 0 && $out =~ /cmake version (\d+)\.(\d+)/;
+    my ( $maj, $min ) = ( $1, $2 );
+    my ( $nmaj, $nmin ) = split /\./, $need;
+    return ( $maj > $nmaj || ( $maj == $nmaj && $min >= $nmin ) ) ? 1 : 0;
 }
 
 sub check_platform {
@@ -167,19 +180,28 @@ sub cmd_install {
     info( 'privileges: ' . priv_describe() );
 
     step( 2, $total, 'Compilers and tools from apt' );
-    apt_ensure( @COBOL_PKGS, @BRIDGE_PKGS );
+    apt_ensure( @COBOL_PKGS, @NATIVE_PKGS );
 
     step( 3, $total, 'Checking compilers' );
     my $major = gcc_major($COBOL_CC) // fatal("$COBOL_CC is not usable");
     fatal("$COBOL_CC reports GCC $major, expected 13") unless $major == 13;
     info("COBOL side : $COBOL_CC (GCC $major)");
-    my ( $bcc, $bmajor ) = bridge_compiler();
+    my ( $bcc, $bmajor ) = native_compiler(qw(gcc-15 gcc-14 gcc));
     $bcc
       or fatal(
-        "no GCC >= $BRIDGE_MIN_GCC found for the bridge (apt install gcc-14)");
+        "no GCC >= $NATIVE_MIN_GCC found for the bridge (apt install gcc-14)");
     info("C bridge   : $bcc (GCC $bmajor)");
+    my ( $cxx, $cmajor ) = native_compiler(qw(g++-15 g++-14 g++));
+    $cxx
+      or fatal(
+        "no g++ >= $NATIVE_MIN_GCC found for the extender (apt install g++-14)"
+      );
+    info("C++ extender: $cxx (GCC $cmajor)");
     can_run('cmake') or fatal('cmake not found');
-    can_run('perl')  or fatal('perl not found');
+    cmake_at_least($CMAKE_MIN)
+      or fatal(
+        "cmake >= $CMAKE_MIN is required by the extender (apt install cmake)");
+    can_run('perl') or fatal('perl not found');
 
     if ( $opt->{'skip-gnucobol'} ) {
         info('GnuCOBOL skipped (--skip-gnucobol)');
@@ -197,12 +219,12 @@ sub cmd_install {
         }
     }
 
-    print_next_steps( $versions, $bcc );
+    print_next_steps( $versions, $bcc, $cxx );
     return 0;
 }
 
 sub print_next_steps {
-    my ( $versions, $bcc ) = @_;
+    my ( $versions, $bcc, $cxx ) = @_;
     my $v = $versions->[0];
     print <<"TXT";
 
@@ -211,6 +233,9 @@ sub print_next_steps {
     cd $LEGACY
     COBOL_HOME=/opt/gnucobol-$v perl cobol/builder.pl
     CC=$bcc perl bridge/builder.pl
+    CXX=$cxx perl extender/builder.pl
+
+[legacy] or all at once, with the checks:  perl dev/setup.pl
 
 [legacy] Switch GnuCOBOL version by changing COBOL_HOME. To compare versions,
 [legacy] build with each one and compare the md5 of data/store/cobol/cb_data.dat.
@@ -222,7 +247,7 @@ TXT
 sub cmd_status {
     info( 'privileges: ' . priv_describe() );
     info('compilers and tools:');
-    for my $cc ( $COBOL_CC, qw(gcc-14 gcc) ) {
+    for my $cc ( $COBOL_CC, qw(gcc-14 g++-14 gcc) ) {
         my $v = gcc_major($cc);
         info(
             sprintf( '  %-7s %s', $cc, defined $v ? "GCC $v" : 'not found' ) );
@@ -231,7 +256,7 @@ sub cmd_status {
         info( sprintf( '  %-7s %s', $t, can_run($t) ? 'found' : 'not found' ) );
     }
     my @missing =
-      can_run('dpkg-query') ? pkg_missing( @COBOL_PKGS, @BRIDGE_PKGS ) : ();
+      can_run('dpkg-query') ? pkg_missing( @COBOL_PKGS, @NATIVE_PKGS ) : ();
     info( @missing
         ? "  missing apt packages: @missing"
         : '  all required apt packages are installed' );

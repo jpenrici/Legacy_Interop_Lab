@@ -20,7 +20,7 @@ Builds, from C<extender/> into the portable part of the tree:
 
 and runs the tests from C<legacy/bin>, like any other executable.
 
-Requires C<lib/lib_c_api.so> (C<perl bridge/builder.pl>), C<bin/legacy_app> to
+Requires C<lib/lib_c_api.so> (C<perl bridge/builder.pl>), C<bin/cobol_app> to
 run the tests (C<perl cobol/builder.pl>), CMake 3.25 or newer and B<g++ 14 or
 newer>. The compiler is taken from C<$CXX>, else C<g++-15>, C<g++-14>, C<g++>.
 The CMake build directory is temporary and removed afterwards.
@@ -122,7 +122,7 @@ sub check_prerequisites {
     my ( $ctx, $mode ) = @_;
     require_artifact( $ctx->{root}, 'lib/lib_c_api.so',
         'perl bridge/builder.pl' );
-    require_artifact( $ctx->{root}, 'bin/legacy_app', 'perl cobol/builder.pl' )
+    require_artifact( $ctx->{root}, 'bin/cobol_app', 'perl cobol/builder.pl' )
       if $mode ne 'build';
     return 1 if $mode eq 'test';
     return ensure_writable_dirs( $ctx->{bin}, $ctx->{lib} );

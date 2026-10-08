@@ -1,3 +1,5 @@
+// legacy/extender/include/legacy_extender.h
+
 /*
  * legacy_extender.h - C ABI of the legacy extender (lib/lib_legacy_extender.so)
  *
@@ -44,8 +46,8 @@ extern "C" {
 #define LGX_API __attribute__((visibility("default")))
 
 #define LGX_VERSION "0.1.0"
-#define LGX_MAX_WINDOW 120 /* moving-average window, in months          */
-#define LGX_MAX_BASIS 120 /* projection basis, in months               */
+#define LGX_MAX_WINDOW 120 /*  moving-average window, in months          */
+#define LGX_MAX_BASIS 120 /*   projection basis, in months               */
 #define LGX_MAX_HORIZON 120 /* projection horizon, in months             */
 
 /*
@@ -54,49 +56,49 @@ extern "C" {
  */
 enum lgx_status {
     LGX_OK = 0,
-    LGX_ERR_COBOL_INPUT = 1, /* legacy_app: cannot open the input CSV   */
-    LGX_ERR_COBOL_OUTPUT = 2, /* legacy_app: cannot write the .dat       */
-    LGX_WARN_REJECTED = 3, /* done, some CSV lines were rejected      */
+    LGX_ERR_COBOL_INPUT = 1, /*    legacy_app: cannot open the input CSV   */
+    LGX_ERR_COBOL_OUTPUT = 2, /*   legacy_app: cannot write the .dat       */
+    LGX_WARN_REJECTED = 3, /*      done, some CSV lines were rejected      */
     LGX_ERR_COBOL_OVERFLOW = 4, /* legacy_app: amount overflow, aborted    */
-    LGX_ERR_NOT_FOUND = -1, /* legacy_app not found                    */
-    LGX_ERR_SPAWN = -2, /* cannot start legacy_app                 */
-    LGX_ERR_SIGNAL = -3, /* legacy_app killed by a signal           */
-    LGX_ERR_DATA = -4, /* .dat missing, corrupt or inconsistent   */
-    LGX_ERR_ARG = -5, /* bad argument                            */
-    LGX_ERR_CAPACITY = -6, /* output array too small (*count = needed)*/
-    LGX_ERR_HOME = -7, /* cannot determine <home>                 */
-    LGX_ERR_UNEXPECTED = -8, /* unexpected failure                      */
-    LGX_ERR_NO_DATA = -20, /* the ledger has no monthly records       */
-    LGX_ERR_OVERFLOW = -21, /* calculation would overflow int64        */
-    LGX_ERR_RANGE = -22 /* argument outside its documented range   */
+    LGX_ERR_NOT_FOUND = -1, /*     legacy_app not found                    */
+    LGX_ERR_SPAWN = -2, /*         cannot start legacy_app                 */
+    LGX_ERR_SIGNAL = -3, /*        legacy_app killed by a signal           */
+    LGX_ERR_DATA = -4, /*          .dat missing, corrupt or inconsistent   */
+    LGX_ERR_ARG = -5, /*           bad argument                            */
+    LGX_ERR_CAPACITY = -6, /*      output array too small (*count = needed)*/
+    LGX_ERR_HOME = -7, /*          cannot determine <home>                 */
+    LGX_ERR_UNEXPECTED = -8, /*    unexpected failure                      */
+    LGX_ERR_NO_DATA = -20, /*      the ledger has no monthly records       */
+    LGX_ERR_OVERFLOW = -21, /*     calculation would overflow int64        */
+    LGX_ERR_RANGE = -22 /*         argument outside its documented range   */
 };
 
 /* One calendar month. 72 bytes. */
 typedef struct lgx_month {
     int64_t debit_cents;
     int64_t credit_cents;
-    int64_t balance_cents; /* debit - credit of the month                 */
+    int64_t balance_cents; /*    debit - credit of the month                 */
     int64_t cumulative_cents; /* running balance at the end of the month     */
     int64_t moving_avg_cents; /* average monthly balance over window_used    */
-    int64_t growth_bp; /* cumulative balance vs the previous month    */
+    int64_t growth_bp; /*        cumulative balance vs the previous month    */
     int32_t year;
-    int32_t month; /* 1..12                                       */
-    int32_t entries; /* accepted CSV lines; 0 = month filled in     */
-    int32_t window_used; /* months in the moving average (<= window)    */
-    int32_t growth_valid; /* 0 when there is no previous month or it is 0*/
-    int32_t pad; /* always 0                                    */
+    int32_t month; /*            1..12                                       */
+    int32_t entries; /*          accepted CSV lines; 0 = month filled in     */
+    int32_t window_used; /*      months in the moving average (<= window)    */
+    int32_t growth_valid; /*     0 when there is no previous month or it is 0*/
+    int32_t pad; /*              always 0                                    */
 } lgx_month;
 
 /* One calendar year. 64 bytes. */
 typedef struct lgx_year {
     int64_t debit_cents;
     int64_t credit_cents;
-    int64_t balance_cents; /* debit - credit of the year             */
-    int64_t cumulative_cents; /* running balance at year end            */
+    int64_t balance_cents; /*     debit - credit of the year             */
+    int64_t cumulative_cents; /*  running balance at year end            */
     int64_t avg_monthly_cents; /* balance / months                       */
-    int64_t growth_bp; /* balance vs the previous year           */
+    int64_t growth_bp; /*         balance vs the previous year           */
     int32_t year;
-    int32_t months; /* calendar months of the series in year  */
+    int32_t months; /*            calendar months of the series in year  */
     int32_t entries;
     int32_t growth_valid;
 } lgx_year;
@@ -105,21 +107,21 @@ typedef struct lgx_year {
 typedef struct lgx_summary {
     int64_t debit_cents;
     int64_t credit_cents;
-    int64_t balance_cents; /* final running balance                  */
-    int64_t avg_monthly_cents; /* balance / months of the calendar series*/
-    int64_t best_cents; /* highest monthly balance                */
-    int64_t worst_cents; /* lowest monthly balance                 */
+    int64_t balance_cents; /*        final running balance                  */
+    int64_t avg_monthly_cents; /*    balance / months of the calendar series*/
+    int64_t best_cents; /*           highest monthly balance                */
+    int64_t worst_cents; /*          lowest monthly balance                 */
     int32_t best_year, best_month;
     int32_t worst_year, worst_month;
-    int32_t months; /* calendar months in the series          */
-    int32_t active_months; /* months with entries                    */
+    int32_t months; /*               calendar months in the series          */
+    int32_t active_months; /*        months with entries                    */
     int32_t lines_read, lines_accepted, lines_rejected;
     int32_t pad;
 } lgx_summary;
 
 /* One projected month. 24 bytes. */
 typedef struct lgx_projection {
-    int64_t balance_cents; /* projected monthly balance              */
+    int64_t balance_cents; /*    projected monthly balance              */
     int64_t cumulative_cents; /* projected running balance              */
     int32_t year;
     int32_t month;
