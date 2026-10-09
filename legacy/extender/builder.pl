@@ -75,6 +75,15 @@ sub main {
     return 0;
 }
 
+# Mode from the command line: all | build | test | clean.
+sub parse_args {
+    my @args = @_;
+    my $mode = @args ? shift @args : 'all';
+    return $mode if $mode =~ /^(?:all|build|test|clean)$/ && !@args;
+    print STDERR "usage: builder.pl [all|build|test|clean]\n";
+    exit 2;
+}
+
 # ----------------------------------------------------------------- modes
 
 sub do_clean {
@@ -150,15 +159,6 @@ sub find_toolchain {
 # BEGIN shared-builder-helpers
 # Identical in every builder (cobol, bridge, extender): `setup.pl check`
 # verifies it. Safe by construction: no shell, no root, no inherited flags.
-
-# Mode from the command line: all | build | test | clean.
-sub parse_args {
-    my @args = @_;
-    my $mode = @args ? shift @args : 'all';
-    return $mode if $mode =~ /^(?:all|build|test|clean)$/ && !@args;
-    print STDERR "usage: builder.pl [all|build|test|clean]\n";
-    exit 2;
-}
 
 sub fail { print STDERR "builder: @_\n"; exit 1 }
 

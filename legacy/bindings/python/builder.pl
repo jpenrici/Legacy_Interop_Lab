@@ -7,7 +7,7 @@ builder.pl - prepare the Python venv for the bindings, and test them
 
 =head1 SYNOPSIS
 
-  perl bindings/python/builder.pl [all|build|test|clean]     (default: all)
+  perl bindings/python/builder.pl [all|build|test|clean|example]  (default: all)
 
   PYTHON=python3.12 perl bindings/python/builder.pl
   LEGACY_NO_QT=1    perl bindings/python/builder.pl          # without PySide6
@@ -31,13 +31,15 @@ C<PIP_REQUIRE_VIRTUALENV> makes pip refuse to install anywhere else.
 
 =over 4
 
-=item B<build>  create the venv, link the sources, install PySide6, check the import
+=item B<build>    create the venv, link the sources, install PySide6, check the import
 
-=item B<test>   run the unittest suite from legacy/bin (needs the extender and COBOL built)
+=item B<test>     run the unittest suite from legacy/bin (needs the extender and COBOL built)
 
-=item B<all>    build, then test
+=item B<all>      build, then test
 
-=item B<clean>  remove the venv (sources and data are never touched)
+=item B<clean>    remove the venv (sources and data are never touched)
+
+=item B<example>  run the GUI example (needs the extender and COBOL built)
 
 =back
 
@@ -75,10 +77,21 @@ sub main {
     return do_clean($ctx) if $mode eq 'clean';
 
     check_prerequisites( $ctx, $mode );
-    find_toolchain($ctx) if $mode ne 'test';
-    do_build($ctx)       if $mode ne 'test';
-    do_test($ctx)        if $mode ne 'build';
+    find_toolchain($ctx) if $mode eq 'build';
+    do_build($ctx)       if $mode eq 'build';
+    do_test($ctx)        if $mode eq 'test';
+    do_example($ctx)     if $mode eq 'example';
+    do_all($ctx)         if $mode eq 'all';
     return 0;
+}
+
+# Mode from the command line: all | build | test | clean.
+sub parse_args {
+    my @args = @_;
+    my $mode = @args ? shift @args : 'all';
+    return $mode if $mode =~ /^(?:all|build|test|clean|example)$/ && !@args;
+    print STDERR "usage: builder.pl [all|build|test|clean|example]\n";
+    exit 2;
 }
 
 # ----------------------------------------------------------------- modes
@@ -87,6 +100,15 @@ sub do_clean {
     my ($ctx) = @_;
     remove_venv($ctx);
     print "builder: cleaned\n";
+    return 0;
+}
+
+sub do_all {
+    my ($ctx) = @_;
+    find_toolchain($ctx);
+    do_build($ctx);
+    do_test($ctx);
+    #do_example($ctx); # optional
     return 0;
 }
 
@@ -108,6 +130,13 @@ sub do_test {
         $ctx->{tests}, '-v' );
 }
 
+sub do_example {
+    my ($ctx) = @_;
+    chdir "$ctx->{root}/bin"
+      or fail("chdir $ctx->{root}/bin: $!");
+    return venv_run( $ctx, $ctx->{vpython}, $ctx->{example} );
+}
+
 # ----------------------------------------------------- component specifics
 
 sub build_context {
@@ -116,15 +145,16 @@ sub build_context {
     return {
         here         => $here,
         root         => $root,
-        venv         => "$here/.venv",
-        vpython      => "$here/.venv/bin/python",
+        venv         => "$root/.venv",
+        vpython      => "$root/.venv/bin/python",
         src          => "$here/src",
         tests        => "$here/tests",
+        example      => "$here/examples/table_view.py",
         requirements => "$here/requirements-qt.txt",
     };
 }
 
-# Building a venv needs nothing else; testing needs the venv and what it calls.
+# Building a venv needs nothing else; testing and example needs the venv and what it calls.
 sub check_prerequisites {
     my ( $ctx, $mode ) = @_;
     if ( $mode ne 'build' ) {
@@ -133,13 +163,14 @@ sub check_prerequisites {
         require_artifact( $ctx->{root}, 'bin/cobol_app',
             'perl cobol/builder.pl' );
     }
-    if ( $mode eq 'test' ) {
+    if ( $mode eq 'test' || $mode eq 'example') {
         -x $ctx->{vpython}
           or fail(
 'the venv does not exist - run: perl bindings/python/builder.pl build'
           );
         return 1;
     }
+
     return ensure_writable_dirs( $ctx->{here} );
 }
 
@@ -287,15 +318,6 @@ sub remove_venv {
 # BEGIN shared-builder-helpers
 # Identical in every builder (cobol, bridge, extender): `setup.pl check`
 # verifies it. Safe by construction: no shell, no root, no inherited flags.
-
-# Mode from the command line: all | build | test | clean.
-sub parse_args {
-    my @args = @_;
-    my $mode = @args ? shift @args : 'all';
-    return $mode if $mode =~ /^(?:all|build|test|clean)$/ && !@args;
-    print STDERR "usage: builder.pl [all|build|test|clean]\n";
-    exit 2;
-}
 
 sub fail { print STDERR "builder: @_\n"; exit 1 }
 

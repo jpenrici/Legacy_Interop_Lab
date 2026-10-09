@@ -135,7 +135,7 @@ run this script again).
   perl dev/setup.pl check --system-cobol --strict
   perl dev/setup.pl run legacy_extender_test
   perl dev/setup.pl run python_tests
-  LEGACY_NO_QT=1 perl dev/setup.pl     # everything, without downloading PySide6
+  LEGACY_NO_QT=1 perl dev/setup.pl       # everything, without downloading PySide6
 
 =cut
 
