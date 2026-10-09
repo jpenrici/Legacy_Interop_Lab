@@ -1,5 +1,4 @@
 package LegacyDev::Components;
-# legacy/dev/LegacyDev/Components.pm
 
 =head1 NAME
 
@@ -25,25 +24,36 @@ Each entry is a hash:
                cobol => 1                 a GnuCOBOL and the C compiler it calls
                cc    => { min, label, option, apt }    a GCC >= min (C)
                cxx   => { min, label, option, apt }    a g++ >= min (C++)
+               python => { min, label, option, apt }   a Python >= min with venv
                cmake => 'X.Y'             CMake >= X.Y
   requires   source/data files that must exist
   artifacts  what the builder produces: { path, label }, or for a set of files
              { globs => [patterns], label, missing => 'text when absent' }
-  run        executables that "setup.pl run" starts from legacy/bin, with the
-             exit codes they may return: { exe, ok => [..], warn => {code=>why} }
+  run        what "setup.pl run" starts, with the exit codes it may return
+             (ok => [..], warn => { code => why }):
+               { exe => 'name' }                  a native executable in legacy/bin;
+                                                  its libraries are checked to resolve
+                                                  inside legacy/lib
+               { name => 'x', via => 'builder-test' }   no native executable (the
+                                                  Python bindings): the builder's own
+                                                  "test" mode, from legacy/bin
   env        sub ($ctx) returning the environment variables its builder reads
              (the toolchain C<Check> found goes through here)
 
 =head1 ADDING A COMPONENT
 
+Copy the closest entry below (C<python> is the model for anything that is not
+compiled), write a builder from the common template (same shared helper block,
+verified by C<setup.pl check>), and, if it needs a tool nobody checks yet, add a
+C<check_*> function for it in C<LegacyDev::Check>. The UI will be one more entry:
+
   {
-      name => 'python', title => 'Python bindings',
-      builder => 'bindings/python/builder.pl', depends => ['extender'],
-      tools => { python => '3.9' },          # teach Check::check_tool about it
-      requires  => [ 'bindings/python/pyproject.toml' ],
-      artifacts => [ { path => 'bin/legacy_py_test', label => 'binding tests' } ],
-      run       => [ { exe => 'legacy_py_test', ok => [0], warn => {} } ],
-      env       => sub { { PYTHON => $_[0]{python} } },
+      name => 'ui', title => 'Qt UI', builder => 'ui/builder.pl',
+      depends => ['python'],                 # reuses bindings/python/.venv
+      tools => {},  requires => [ 'ui/builder.pl', 'ui/app.py' ],
+      artifacts => [ { path => 'ui/.built', label => 'ui' } ],
+      run => [ { name => 'ui_tests', via => 'builder-test', ok => [0], warn => {} } ],
+      env => sub { {} },
   },
 
 =cut
@@ -79,6 +89,8 @@ sub exit_meaning {
 }
 
 my @COMPONENTS = (
+
+    # --- COBOL ------------------------------------------------------
     {
         name     => 'cobol',
         title    => 'COBOL side',
@@ -116,6 +128,8 @@ my @COMPONENTS = (
             return \%env;
         },
     },
+
+    # --- C ---------------------------------------------------------
     {
         name    => 'bridge',
         title   => 'C bridge',
@@ -131,18 +145,20 @@ my @COMPONENTS = (
             cmake => '3.16',
         },
         requires => [
-            'bridge/builder.pl',    'bridge/CMakeLists.txt',
-            'bridge/include/bridge.h', 'bridge/src/bridge.c',
+            'bridge/builder.pl',       'bridge/CMakeLists.txt',
+            'bridge/include/brigde.h', 'bridge/src/bridge.c',
             'bridge/tests/main.c'
         ],
         artifacts => [
-            { path => 'bin/bridge_test',   label => 'bridge test program' },
+            { path => 'bin/bridge_test',  label => 'bridge test program' },
             { path => 'lib/lib_c_api.so', label => 'bridge library' },
         ],
         run => [ { exe => 'bridge_test', ok => [0], warn => {} } ],
         env =>
           sub { my %e; $e{CC} = $_[0]{cc} if defined $_[0]{cc}; return \%e },
     },
+
+    # --- C++ -------------------------------------------------------
     {
         name    => 'extender',
         title   => 'C++ extender',
@@ -168,10 +184,7 @@ my @COMPONENTS = (
             'extender/tests/main.cpp'
         ],
         artifacts => [
-            {
-                path  => 'bin/extender_test',
-                label => 'extender test program'
-            },
+            { path => 'bin/extender_test', label => 'extender test program' },
             {
                 path  => 'lib/lib_cpp_api.so',
                 label => 'extender library'
@@ -182,7 +195,65 @@ my @COMPONENTS = (
           sub { my %e; $e{CXX} = $_[0]{cxx} if defined $_[0]{cxx}; return \%e },
     },
 
-    # Future (see "ADDING A COMPONENT" above): bindings/python, ui.
+    # --- Lua ---------------------------------------------------------
+    # TO DO
+
+    # --- Python ------------------------------------------------------
+    {
+        name    => 'python',
+        title   => 'Python bindings',
+        builder => 'bindings/python/builder.pl',
+        depends => ['extender'],
+        tools   => {
+            python => {
+                min    => '3.10',
+                label  => 'python',
+                option => 'python',
+                apt    => 'python3 python3-venv'
+            },
+        },
+        requires => [
+            'bindings/python/builder.pl',
+            'bindings/python/requirements-qt.txt',
+            'bindings/python/src/legacy_ledger/__init__.py',
+            'bindings/python/src/legacy_ledger/_abi.py',
+            'bindings/python/src/legacy_ledger/models.py',
+            'bindings/python/src/legacy_ledger/ledger.py',
+            'bindings/python/src/legacy_ledger/qt.py',
+            'bindings/python/tests/test_ledger.py',
+            'bindings/python/tests/test_qt.py',
+            'bindings/python/examples/table_view.py'
+        ],
+        artifacts => [
+            {
+                path  => 'bindings/python/.venv/bin/python',
+                label => 'python venv'
+            },
+            {
+                globs =>
+                  ['bindings/python/.venv/lib/python*/site-packages/PySide6'],
+                label   => 'PySide6 (venv)',
+                missing =>
+                  'not installed (optional: needed by legacy_ledger.qt)'
+            },
+        ],
+        run => [
+            {
+                name => 'python_tests',
+                via  => 'builder-test',
+                ok   => [0],
+                warn => {}
+            }
+        ],
+        env => sub {
+            my %e;
+            $e{PYTHON} = $_[0]{python} if defined $_[0]{python};
+            return \%e;
+        },
+    },
+
+    # --- Others ------------------------------------------------------
+    # Next: ui (see "ADDING A COMPONENT" above).
 );
 
 sub components { return @COMPONENTS }

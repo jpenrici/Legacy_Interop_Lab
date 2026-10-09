@@ -1,5 +1,4 @@
 package LegacyDev::Pipeline;
-# legacy/dev/LegacyDev/Pipeline.pm
 
 =head1 NAME
 
@@ -28,7 +27,7 @@ use Cwd        qw(abs_path);
 use File::Path qw(make_path);
 use LegacyDev  qw(info warnx fatal step capture_status child_perl is_root);
 use LegacyDev::Components
-  qw(legacy_root dev_dir build_order data_dirs exit_meaning);
+  qw(legacy_root dev_dir component build_order data_dirs exit_meaning);
 use LegacyDev::Check qw(run_checks);
 
 our @EXPORT_OK = qw(cmd_prepare cmd_build cmd_run cmd_clean cmd_all allow_root);
@@ -193,18 +192,37 @@ sub judge_exit {
     return ( 'fail', "exit $rc" . ( $meaning{$rc} ? ": $meaning{$rc}" : '' ) );
 }
 
+# A run entry is called by its exe (native) or its name (via the builder).
+sub entry_name { return $_[0]{exe} // $_[0]{name} }
+
 sub select_runnables {
     my ($names) = @_;
     my @all = runnables();
     return @all unless @$names;
-    my %known   = map  { $_->{exe} => 1 } @all;
+    my %known   = map  { entry_name($_) => 1 } @all;
     my @unknown = grep { !$known{$_} } @$names;
     fatal(  "unknown executable(s): @unknown (known: "
-          . join( ', ', map { $_->{exe} } @all )
+          . join( ', ', map { entry_name($_) } @all )
           . ')' )
       if @unknown;
     my %want = map { $_ => 1 } @$names;
-    return grep { $want{ $_->{exe} } } @all;
+    return grep { $want{ entry_name($_) } } @all;
+}
+
+# For components without a native executable: their builder's "test" mode.
+sub run_via_builder {
+    my ($entry) = @_;
+    my $script  = builder_path( component( $entry->{component} ) );
+    my %env     = base_env();
+    local @ENV{ keys %env } = values %env if %env;
+    open(
+        my $fh, '-|',             '/bin/sh',
+        '-c',   'exec "$@" 2>&1', 'sh',
+        $^X,    $script,          'test'
+    ) or fatal("cannot start $script: $!");
+    while (<$fh>) { print "    $_" }
+    close $fh;
+    return $? == -1 ? 127 : ( $? & 127 ) ? 128 + ( $? & 127 ) : $? >> 8;
 }
 
 sub cmd_run {
@@ -213,7 +231,7 @@ sub cmd_run {
     my @todo = select_runnables($names);
 
     my $root   = legacy_root();
-    my @absent = grep { !-x "$root/bin/$_->{exe}" } @todo;
+    my @absent = grep { $_->{exe} && !-x "$root/bin/$_->{exe}" } @todo;
     if (@absent) {
         warnx(  'not built: '
               . join( ', ', map { "bin/$_->{exe}" } @absent )
@@ -225,18 +243,25 @@ sub cmd_run {
     my ( @summary, $failed );
     my $n = 0;
     for my $e (@todo) {
-        step( ++$n, scalar(@todo), "bin/$e->{exe}" );
-        my ( $ok, $why ) = check_portability( $e->{exe} );
-        printf "  portability: %s (%s)\n", $ok ? 'OK' : 'FAIL', $why;
-
-        info("running from $root/bin with a clean environment");
-        my ( $level, $msg ) = judge_exit( $e, run_exe( $e->{exe} ) );
-        if ( !$ok ) {    # a portability failure outranks a good exit code
+        my ( $ok, $why, $rc ) = ( 1, '' );
+        if ( $e->{via} ) {    # no native executable: nothing to ldd
+            step( ++$n, scalar(@todo), "$e->{name} (builder test mode)" );
+            $rc = run_via_builder($e);
+        }
+        else {
+            step( ++$n, scalar(@todo), "bin/$e->{exe}" );
+            ( $ok, $why ) = check_portability( $e->{exe} );
+            printf "  portability: %s (%s)\n", $ok ? 'OK' : 'FAIL', $why;
+            info("running from $root/bin with a clean environment");
+            $rc = run_exe( $e->{exe} );
+        }
+        my ( $level, $msg ) = judge_exit( $e, $rc );
+        if ( !$ok ) {         # a portability failure outranks a good exit code
             $level = 'fail';
             $msg .= "; portability: $why";
         }
         $failed++ if $level eq 'fail';
-        push @summary, [ $e->{exe}, uc $level, $msg ];
+        push @summary, [ entry_name($e), uc $level, $msg ];
     }
 
     print "\n[legacy] summary\n";

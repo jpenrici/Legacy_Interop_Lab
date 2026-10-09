@@ -1,0 +1,10 @@
+# --- Python ---
+.venv/
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.manifest
+*.spec
+cover_db/
+pm_to_blib

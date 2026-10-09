@@ -1,5 +1,4 @@
 package LegacyDev::Check;
-# legacy/dev/LegacyDev/Check.pm
 
 =head1 NAME
 
@@ -75,9 +74,10 @@ sub run_checks {
     for my $c ( components() ) {  # one section per component, from the manifest
         print "\n-- $c->{title}\n";
         my $tools = $c->{tools};
-        check_cobol( \%ctx, $opt ) if $tools->{cobol};
-        check_compiler( \%ctx, 'cc',  $tools->{cc},  $opt ) if $tools->{cc};
+        check_cobol( \%ctx, $opt )                          if $tools->{cobol};
+        check_compiler( \%ctx, 'cc', $tools->{cc}, $opt )   if $tools->{cc};
         check_compiler( \%ctx, 'cxx', $tools->{cxx}, $opt ) if $tools->{cxx};
+        check_python( \%ctx, $tools->{python}, $opt )       if $tools->{python};
     }
 
     check_build_tools();
@@ -194,6 +194,41 @@ sub check_compiler {
     report(
         fail => $spec->{label},
         "no $name >= $spec->{min} found",
+        "apt install $spec->{apt}  (or: --$spec->{option} CMD)"
+    );
+    return 0;
+}
+
+# A Python of at least $spec->{min} that can create virtual environments
+# (on Debian that is the separate python3-venv package).
+sub check_python {
+    my ( $ctx, $spec, $opt ) = @_;
+    my @candidates =
+      grep { defined && length } ( $opt->{python}, $ENV{PYTHON}, 'python3' );
+    for my $cmd (@candidates) {
+        my $path = can_run($cmd) or next;
+        my ( $rc, $out ) = capture_status( $path, '-c',
+            'import sys; print("%d.%d.%d" % sys.version_info[:3])' );
+        next unless $rc == 0 && $out =~ /^(\d+\.\d+\.\d+)/;
+        my $version = $1;
+        next unless version_ge( $version, $spec->{min} );
+
+        my ($venv_rc) = capture_status( $path, '-c', 'import venv, ensurepip' );
+        if ( $venv_rc != 0 ) {
+            report(
+                fail => $spec->{label},
+                "$cmd (Python $version) cannot create virtual environments",
+                'apt install python3-venv'
+            );
+            return 0;
+        }
+        $ctx->{python} = $path;
+        report( ok => $spec->{label}, "$cmd (Python $version, venv ok)" );
+        return 1;
+    }
+    report(
+        fail => $spec->{label},
+        "no Python >= $spec->{min} found",
         "apt install $spec->{apt}  (or: --$spec->{option} CMD)"
     );
     return 0;

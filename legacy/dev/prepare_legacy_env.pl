@@ -33,6 +33,10 @@ into C</opt/gnucobol-V>. C<cobc> translates COBOL to C and calls GCC 13.
 
 =item * B<C++ extender> - g++ 14 or newer and CMake 3.25 or newer.
 
+=item * B<Python bindings> - Python 3.10 or newer with the C<venv> module
+(Debian: C<python3-venv>). PySide6 itself is not installed here: it is
+downloaded into the bindings' own venv by C<bindings/python/builder.pl>.
+
 =back
 
 The steps are idempotent: anything already present is left alone. Packages
@@ -73,10 +77,12 @@ use LegacyDev qw(
 my $COBOL_CC       = 'gcc-13';    # compiler cobc calls
 my $NATIVE_MIN_GCC = 14;     # bridge/CMakeLists.txt and extender/CMakeLists.txt
 my $CMAKE_MIN      = '3.25'; # extender/CMakeLists.txt (the bridge needs 3.16)
+my $PYTHON_MIN     = '3.10'; # bindings/python (PySide6 wheels are cp310-abi3)
 
 my @COBOL_PKGS =
   qw(gcc-13 build-essential libgmp-dev curl xz-utils gnupg ca-certificates);
-my @NATIVE_PKGS = qw(gcc-14 g++-14 cmake);    # C bridge and C++ extender
+my @NATIVE_PKGS = qw(gcc-14 g++-14 cmake python3 python3-venv)
+  ;                          # C bridge, C++ extender, Python bindings
 
 my $INSTALLER = "$RealBin/gnucobol_install.pl";
 my $PRIV      = 'auto';
@@ -144,6 +150,18 @@ sub native_compiler {
     return;
 }
 
+# "3.12.3" when python3 is >= $PYTHON_MIN and can create venvs, else undef.
+sub python_version {
+    my ( $rc, $out ) = capture_status( 'python3', '-c',
+        'import sys; print("%d.%d.%d" % sys.version_info[:3])' );
+    return unless $rc == 0 && $out =~ /^((\d+)\.(\d+)\.\d+)/;
+    my ( $version, $maj, $min ) = ( $1, $2, $3 );
+    my ( $nmaj, $nmin ) = split /\./, $PYTHON_MIN;
+    return unless $maj > $nmaj || ( $maj == $nmaj && $min >= $nmin );
+    my ($venv_rc) = capture_status( 'python3', '-c', 'import venv, ensurepip' );
+    return $venv_rc == 0 ? $version : undef;
+}
+
 # "3.28.3" >= "3.25" ?
 sub cmake_at_least {
     my ($need) = @_;
@@ -201,6 +219,12 @@ sub cmd_install {
     cmake_at_least($CMAKE_MIN)
       or fatal(
         "cmake >= $CMAKE_MIN is required by the extender (apt install cmake)");
+    my $python = python_version();
+    $python
+      or fatal(
+"Python >= $PYTHON_MIN with the venv module not found (apt install python3 python3-venv)"
+      );
+    info("Python     : python3 ($python, venv ok)");
     can_run('perl') or fatal('perl not found');
 
     if ( $opt->{'skip-gnucobol'} ) {
@@ -234,6 +258,7 @@ sub print_next_steps {
     COBOL_HOME=/opt/gnucobol-$v perl cobol/builder.pl
     CC=$bcc perl bridge/builder.pl
     CXX=$cxx perl extender/builder.pl
+    perl bindings/python/builder.pl          # venv + PySide6 (LEGACY_NO_QT=1 skips the download)
 
 [legacy] or all at once, with the checks:  perl dev/setup.pl
 
@@ -257,9 +282,11 @@ sub cmd_status {
     }
     my @missing =
       can_run('dpkg-query') ? pkg_missing( @COBOL_PKGS, @NATIVE_PKGS ) : ();
-    info( @missing
+    info(
+        @missing
         ? "  missing apt packages: @missing"
-        : '  all required apt packages are installed' );
+        : '  all required apt packages are installed'
+    );
     print "\n";
     installer('status');
     return 0;

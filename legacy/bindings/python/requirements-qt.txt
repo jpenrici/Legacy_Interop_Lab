@@ -1,0 +1,6 @@
+# Optional: the Qt adapter (legacy_ledger.qt) and, later, the UI.
+# Installed into the component's own venv by `perl bindings/python/builder.pl`
+# (skip with LEGACY_NO_QT=1). Essentials = QtCore/QtGui/QtWidgets; add
+# PySide6-Addons here when charts are wanted. Wheels only, no source builds.
+
+PySide6-Essentials>=6.8,<7
