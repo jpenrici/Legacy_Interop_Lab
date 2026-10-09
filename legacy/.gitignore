@@ -1,109 +1,156 @@
-# --- Project ---
-data/backup/*
-data/store/*
-ui/avalonia/bin/
-ui/avalonia/obj/
+# ==============================================================================
+# PROJECT: Multi-Language Linux Environment (Debian 13)
+# Languages: C, C++, COBOL, Python, Lua, Perl, Shell, Lazarus, .NET
+# ==============================================================================
+
+# --- Project-Specific Directories & Artifacts ---
+data/backup/
+data/store/
 ui/lazarus/backup/
 ui/lazarus/lib/
 ui/lazarus/link.inc
+ui/avalonia/bin/
+ui/avalonia/obj/
 
-__pycache__/
-*.py[codz]
-*$py.class
+# bin/
+# dist/
+# lib/
+local/
 
-# --- Dependencies (Multi-language) ---
-.bundle/
+
+# --- Operating System & Editor Artifacts ---
+.DS_Store
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+$RECYCLE.BIN/
+.Trash-*
+
+.cache/
+.history/
+.idea/
+.vscode/
+
+
+# --- Environment & Configuration ---
 .env
-.env.env.local
-.env.local
+.env.*
+!.env.example
+!.env.template
 .envrc
-.venv
 .venv/
-bower_components/
-env.bak/
 env/
 ENV/
-node_modules/
-packages/
-vendor/
-venv.bak/
+env.bak/
 venv/
+venv.bak/
 
-# --- Build / Compilation / Logs ---
+
+# --- General Build Outputs ---
 _build/
-.cobc/
-bin/
-blib/
-Build
-Build.bat
 build/
-CMakeCache.txt
-CMakeFiles/
-compile_commands.json
-cover_db/
-dist/
-lib/
-local/
-Makefile
-Makefile.old
-MYMETA.*
-obj/
-perl5/
-pm_to_blib
+Build/
+Build.bat
 
+
+# --- C / C++ ---
+# Build artifacts, objects, and compiled libraries
 *.a
-*.app
-*.bak
-*.class
-*.cob.gnt
-*.cob.int
 *.d
-*.def
-*.dll
 *.dSYM/
 *.dwo
-*.dylib
 *.elf
-*.exe
-*.exp
 *.gch
-*.gnt
-*.hex
-*.i*86
-*.idb
-*.idy
-*.ilk
-*.int
 *.ko
 *.la
 *.lai
-*.lib
-*.lis
 *.lo
-*.log
-*.lst
-*.map
 *.o
 *.obj
 *.os
 *.out
 *.pch
-*.pdb
-*.pem
-*.secret
 *.slo
 *.so.*
 *.su
+*.x86_64
+*.i*86
+
+# CMake & Makefiles
+CMakeCache.txt
+CMakeFiles/
+compile_commands.json
+Makefile
+Makefile.old
+
+
+# --- COBOL ---
+# Compiler caches, listings, and intermediate outputs
+.cobc/
+*.cob.gnt
+*.cob.int
+*.idy
+*.int
+*.lis
+*.lst
+*.map
+*.cbl.out
+
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.manifest
+*.spec
+cover_db/
+pm_to_blib
+
+
+# --- Perl ---
+blib/
+MYMETA.*
+perl5/
+pm_to_blib
+
+
+# --- Lazarus / Free Pascal ---
+*.ppu
+*.or
+
+
+# --- .NET (Avalonia & C#) ---
+project.lock.json
+project.fragment.lock.json
+*.pidb
+*.pdb
+*.upToDate
+*.user
+*.userosscache
+*.sln.docstates
+
+
+# --- General Logs, Temp Files, & Secrets ---
+*.bak
+*.cab
+*.class
+*.def
+*.dll
+*.exp
+*.hex
+*.idb
+*.ilk
+*.lib
+*.lnk
+*.log
+*.msi
+*.msix
+*.msm
+*.msp
+*.pem
+*.secret
+*.stackdump
 *.swp
 *.tmp
-*.x86_64
 *~
-
-# --- Others ---
-.cache/
-.history/
-
-.DS_Store
-Thumbs.db
-.vscode/
-.idea/
