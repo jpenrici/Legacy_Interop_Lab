@@ -116,7 +116,7 @@ static const struct luaL_Reg lua_extender_core_fns[] = {
     { NULL, NULL }
 };
 
-int luaopen_legacy_extender_core(lua_State* L)
+int luaopen_lua_extender_core(lua_State* L)
 {
     luaL_newlib(L, lua_extender_core_fns);
     return 1;

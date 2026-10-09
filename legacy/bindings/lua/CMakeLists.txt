@@ -1,24 +1,21 @@
 # legacy/bindings/lua/CMakeLists.txt
 
-cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 
-project(lua_bindings LANGUAGES C CXX)
+project(lua_bindings LANGUAGES C)
 
-# Requires GCC 14 or newer (C++23 library support).
-if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_VERSION
-                                               VERSION_LESS 14)
+# Requires GCC 14 or newer.
+if(NOT CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_VERSION
+                                             VERSION_LESS 14)
   message(
     FATAL_ERROR
-      "GCC >= 14 required, found ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}"
+      "GCC >= 14 required, found ${CMAKE_C_COMPILER_ID} ${CMAKE_C_COMPILER_VERSION}"
   )
 endif()
 
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF)
 
 # Requires Lua
 find_package(Lua REQUIRED)
@@ -29,10 +26,9 @@ get_filename_component(LEGACY_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
 # Defines centralized output folders for testing/distribution.
 set(LUA_DIST_DIR "${LEGACY_ROOT}/bin/dist/lua")
 
-set(WRAPPER_WARN -Wall -Wextra -Wpedantic -Wshadow -Wformat=2 -Wconversion)
-set(WRAPPER_HARDEN -O2 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2
+set(BINDING_WARN -Wall -Wextra -Wpedantic -Wshadow -Wformat=2 -Wconversion)
+set(BINDING_HARDEN -O2 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2
                    -fstack-protector-strong)
-set(EXT_STATIC_RUNTIME -static-libstdc++ -static-libgcc)
 
 # --- the C++ extender, imported --------------------------------------------
 if(NOT EXISTS "${LEGACY_ROOT}/lib/lib_cpp_api.so")
@@ -51,14 +47,14 @@ set_target_properties(
 if(Lua_FOUND)
   add_library(lua_extender_core MODULE src/lua_extender.c)
 
-  target_compile_options(lua_extender_core PRIVATE ${WRAPPER_WARN}
-                                                   ${WRAPPER_HARDEN})
+  target_compile_options(lua_extender_core PRIVATE ${BINDING_WARN}
+                                                   ${BINDING_HARDEN})
 
   target_include_directories(
     lua_extender_core PRIVATE ${LUA_INCLUDE_DIR}
                               "${LEGACY_ROOT}/extender/include")
 
-  target_link_libraries(lua_extender_core PRIVATE cpp_api ${LUA_LIBRARIES})
+  target_link_libraries(lua_extender_core PRIVATE cpp_api)
 
   # Place the compiled library directly into the dist/ folder.
   set_target_properties(
@@ -67,7 +63,7 @@ if(Lua_FOUND)
                          # (ex: lua_extender_core.so)
                LIBRARY_OUTPUT_DIRECTORY "${LUA_DIST_DIR}"
                BUILD_WITH_INSTALL_RPATH ON
-               INSTALL_RPATH "\$ORIGIN/../../lib")
+               INSTALL_RPATH "${LEGACY_ROOT}/lib")
 
   target_link_options(lua_extender_core PRIVATE ${EXT_STATIC_RUNTIME})
 

@@ -27,3 +27,4 @@ if status < 0 and status ~= 3 then -- Example treating LGX_WARN_REJECTED as OK
         end
 
         return M
+

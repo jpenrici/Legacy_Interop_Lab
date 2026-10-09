@@ -1,6 +1,6 @@
 # legacy/bridge/CMakeLists.txt
 
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 project(legacy_bridge LANGUAGES C)
 
 # The bridge requires GCC 14 or newer (the COBOL side has its own toolchain).
