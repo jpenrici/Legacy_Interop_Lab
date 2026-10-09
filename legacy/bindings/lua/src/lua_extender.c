@@ -1,4 +1,4 @@
-// legacy/bindings/lua/lua_extender.c
+// legacy/bindings/lua/src/lua_extender.c
 
 #include "extender.h" // lib_cpp_api.so
 #include <lauxlib.h>

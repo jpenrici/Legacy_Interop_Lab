@@ -27,7 +27,7 @@ find_package(Lua REQUIRED)
 get_filename_component(LEGACY_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
 
 # Defines centralized output folders for testing/distribution.
-set(LUA_DIST_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dist")
+set(LUA_DIST_DIR "${LEGACY_ROOT}/bin/dist/lua")
 
 set(WRAPPER_WARN -Wall -Wextra -Wpedantic -Wshadow -Wformat=2 -Wconversion)
 set(WRAPPER_HARDEN -O2 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2
@@ -49,7 +49,7 @@ set_target_properties(
 
 # --- the Lua Module (C Binding) -----------------------------------------------
 if(Lua_FOUND)
-  add_library(lua_extender_core MODULE lua_extender.c)
+  add_library(lua_extender_core MODULE src/lua_extender.c)
 
   target_compile_options(lua_extender_core PRIVATE ${WRAPPER_WARN}
                                                    ${WRAPPER_HARDEN})
@@ -74,11 +74,12 @@ if(Lua_FOUND)
   # --- Copy (binding.lua and tests/*) to the dist/ folder. --------------------
   add_custom_target(
     lua_prepare_dist ALL
-    COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/binding.lua"
-            "${LUA_DIST_DIR}/binding.lua"
+    COMMAND
+      ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/src/binding.lua"
+      "${LUA_DIST_DIR}/binding.lua"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_CURRENT_SOURCE_DIR}/tests" "${LUA_DIST_DIR}"
-    DEPENDS lua_extender_core "${CMAKE_CURRENT_SOURCE_DIR}/binding.lua")
+    DEPENDS lua_extender_core "${CMAKE_CURRENT_SOURCE_DIR}/src/binding.lua")
 
 else()
   message(

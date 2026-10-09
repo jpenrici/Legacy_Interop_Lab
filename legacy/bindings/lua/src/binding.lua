@@ -1,4 +1,4 @@
--- legacy/bindings/lua/bindings.lua
+-- legacy/bindings/lua/src/bindings.lua
 
 local core = require("lua_extender_core")
 local M = {}
