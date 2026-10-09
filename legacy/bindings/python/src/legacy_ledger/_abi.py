@@ -1,4 +1,4 @@
-"""Low-level ctypes view of ``legacy_extender.h`` (lib/lib_legacy_extender.so).
+"""Low-level ctypes view of ``extender.h`` (lib/lib_cpp_api.so).
 
 Nothing here is meant to be used directly: ``legacy_ledger.Ledger`` wraps it.
 This module only knows three things:
@@ -23,9 +23,9 @@ from pathlib import Path
 #: ``lgx_version()`` major.minor this module was written for.
 EXPECTED_ABI = (0, 1)
 
-LIBRARY_NAME = "lib_legacy_extender.so"
+LIBRARY_NAME = "lib_cpp_api.so"
 ENV_LIBRARY = "LEGACY_EXTENDER_LIB"  # full path of the shared library
-ENV_HOME = "LEGACY_HOME"  # a legacy tree: <home>/lib/lib_legacy_extender.so
+ENV_HOME = "LEGACY_HOME"  # a legacy tree: <home>/lib/lib_cpp_api.so
 
 
 class Status(enum.IntEnum):
@@ -50,14 +50,14 @@ class Status(enum.IntEnum):
 
 
 class LibraryNotFoundError(FileNotFoundError):
-    """lib_legacy_extender.so was not found; the message lists where we looked."""
+    """lib_cpp_api.so was not found; the message lists where we looked."""
 
 
 class AbiMismatchError(RuntimeError):
     """The shared library does not match this module (version or struct size)."""
 
 
-# --- struct layouts: field order and types are those of legacy_extender.h ---
+# --- struct layouts: field order and types are those of extender.h ---
 
 _I64, _I32 = ctypes.c_int64, ctypes.c_int32
 
@@ -124,7 +124,7 @@ class CProjection(ctypes.Structure):
     ]
 
 
-#: Sizes promised by the C header (``static_assert``s in legacy_extender.h).
+#: Sizes promised by the C header (``static_assert``s in extender.h).
 STRUCT_SIZES = {CMonth: 72, CYear: 64, CSummary: 88, CProjection: 24}
 
 

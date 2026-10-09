@@ -74,7 +74,7 @@ class AbiTests(unittest.TestCase):
 
     def test_library_and_version(self):
         ledger = Ledger()
-        self.assertEqual(ledger.library_path.name, "lib_legacy_extender.so")
+        self.assertEqual(ledger.library_path.name, "lib_cpp_api.so")
         self.assertEqual(ledger.version, "0.1.0")
 
     def test_strerror_is_never_empty(self):

@@ -14,7 +14,7 @@ builder.pl - prepare the Python venv for the bindings, and test them
 
 =head1 DESCRIPTION
 
-The bindings are plain Python (ctypes over C<lib/lib_legacy_extender.so>): there
+The bindings are plain Python (ctypes over C<lib/lib_cpp_api.so>): there
 is nothing to compile. What this builder prepares is a B<virtual environment>,
 so that PySide6 can be downloaded without touching the system Python:
 
@@ -102,8 +102,10 @@ sub do_build {
 
 sub do_test {
     my ($ctx) = @_;
-    chdir "$ctx->{root}/bin" or fail("chdir $ctx->{root}/bin: $!");    # like any other test
-    return venv_run( $ctx, $ctx->{vpython}, '-m', 'unittest', 'discover', '-s', $ctx->{tests}, '-v' );
+    chdir "$ctx->{root}/bin"
+      or fail("chdir $ctx->{root}/bin: $!");    # like any other test
+    return venv_run( $ctx, $ctx->{vpython}, '-m', 'unittest', 'discover', '-s',
+        $ctx->{tests}, '-v' );
 }
 
 # ----------------------------------------------------- component specifics
@@ -126,11 +128,16 @@ sub build_context {
 sub check_prerequisites {
     my ( $ctx, $mode ) = @_;
     if ( $mode ne 'build' ) {
-        require_artifact( $ctx->{root}, 'lib/lib_legacy_extender.so', 'perl extender/builder.pl' );
-        require_artifact( $ctx->{root}, 'bin/legacy_app',             'perl cobol/builder.pl' );
+        require_artifact( $ctx->{root}, 'lib/lib_cpp_api.so',
+            'perl extender/builder.pl' );
+        require_artifact( $ctx->{root}, 'bin/cobol_app',
+            'perl cobol/builder.pl' );
     }
     if ( $mode eq 'test' ) {
-        -x $ctx->{vpython} or fail('the venv does not exist - run: perl bindings/python/builder.pl build');
+        -x $ctx->{vpython}
+          or fail(
+'the venv does not exist - run: perl bindings/python/builder.pl build'
+          );
         return 1;
     }
     return ensure_writable_dirs( $ctx->{here} );
@@ -138,33 +145,42 @@ sub check_prerequisites {
 
 # A Python >= 3.10 that can create venvs (on Debian: python3-venv).
 sub find_toolchain {
-    my ($ctx) = @_;
+    my ($ctx)      = @_;
     my @candidates = grep { defined && length } ( $ENV{PYTHON}, 'python3' );
     for my $cmd (@candidates) {
         next unless valid_command($cmd);
         my $path = $cmd =~ m{/} ? $cmd : find_in_path($cmd);
         next unless $path && -x $path;
-        my ( $rc, $out ) = capture( $path, '-c', 'import sys; print("%d.%d.%d" % sys.version_info[:3])' );
+        my ( $rc, $out ) = capture( $path, '-c',
+            'import sys; print("%d.%d.%d" % sys.version_info[:3])' );
         next unless $rc == 0 && $out =~ /^(\d+)\.(\d+)\.\d+/;
         next if $1 < 3 || ( $1 == 3 && $2 < 10 );
         chomp $out;
 
         my ($venv_rc) = capture( $path, '-c', 'import venv, ensurepip' );
-        fail("$path cannot create virtual environments; apt install python3-venv") if $venv_rc != 0;
+        fail(
+            "$path cannot create virtual environments; apt install python3-venv"
+        ) if $venv_rc != 0;
         print "builder: using $path (Python $out)\n";
         $ctx->{python} = $path;
         return 1;
     }
-    fail( 'Python >= 3.10 not found (tried: ' . join( ' ', @candidates ) . '); apt install python3 python3-venv or set PYTHON=/path/to/python3' );
+    fail(   'Python >= 3.10 not found (tried: '
+          . join( ' ', @candidates )
+          . '); apt install python3 python3-venv or set PYTHON=/path/to/python3'
+    );
 }
 
 # The environment of every Python/pip process this builder starts: only the
 # venv, no user site, no PYTHONPATH, no .pyc written into the source tree.
 sub venv_env {
     my %env = %ENV;
-    delete @env{qw(PYTHONPATH PYTHONHOME PYTHONSTARTUP PYTHONUSERBASE VIRTUAL_ENV PIP_USER PIP_TARGET)};
-    @env{qw(PYTHONDONTWRITEBYTECODE PYTHONNOUSERSITE PIP_REQUIRE_VIRTUALENV PIP_DISABLE_PIP_VERSION_CHECK PIP_NO_INPUT)} =
-      (1) x 5;
+    delete @env{
+        qw(PYTHONPATH PYTHONHOME PYTHONSTARTUP PYTHONUSERBASE VIRTUAL_ENV PIP_USER PIP_TARGET)
+    };
+    @env{
+        qw(PYTHONDONTWRITEBYTECODE PYTHONNOUSERSITE PIP_REQUIRE_VIRTUALENV PIP_DISABLE_PIP_VERSION_CHECK PIP_NO_INPUT)
+    } = (1) x 5;
     return %env;
 }
 
@@ -200,9 +216,11 @@ sub create_venv {
 sub link_sources {
     my ($ctx) = @_;
     my ( $rc, $out ) =
-      venv_capture( $ctx, $ctx->{vpython}, '-c', 'import sysconfig; print(sysconfig.get_paths()["purelib"])' );
+      venv_capture( $ctx, $ctx->{vpython}, '-c',
+        'import sysconfig; print(sysconfig.get_paths()["purelib"])' );
     my ($purelib) = split /\n/, $out;
-    $rc == 0 && $purelib && -d $purelib or fail("cannot find the venv site-packages: $out");
+    $rc == 0 && $purelib && -d $purelib
+      or fail("cannot find the venv site-packages: $out");
 
     my $pth = "$purelib/legacy_ledger.pth";
     open( my $fh, '>', $pth ) or fail("cannot write $pth: $!");
@@ -216,26 +234,34 @@ sub link_sources {
 sub install_qt {
     my ($ctx) = @_;
     if ( ( $ENV{LEGACY_NO_QT} // '' ) eq '1' ) {
-        print "builder: PySide6 skipped (LEGACY_NO_QT=1): legacy_ledger.qt will not import\n";
+        print
+"builder: PySide6 skipped (LEGACY_NO_QT=1): legacy_ledger.qt will not import\n";
         return 1;
     }
     -f $ctx->{requirements} or fail("missing $ctx->{requirements}");
-    print "builder: making sure PySide6 is in the venv (the first time downloads ~85 MB; LEGACY_NO_QT=1 skips)\n";
+    print
+"builder: making sure PySide6 is in the venv (the first time downloads ~85 MB; LEGACY_NO_QT=1 skips)\n";
     return venv_run(
-        $ctx, $ctx->{vpython}, '-m', 'pip', 'install', '--only-binary', ':all:',
-        '--disable-pip-version-check', '--no-input', '-r', $ctx->{requirements},
+        $ctx,         $ctx->{vpython},
+        '-m',         'pip',
+        'install',    '--only-binary',
+        ':all:',      '--disable-pip-version-check',
+        '--no-input', '-r',
+        $ctx->{requirements},
     );
 }
 
 sub verify_imports {
     my ($ctx) = @_;
-    my ( $rc, $out ) = venv_capture( $ctx, $ctx->{vpython}, '-c', 'import legacy_ledger; print(legacy_ledger.__version__)' );
+    my ( $rc, $out ) = venv_capture( $ctx, $ctx->{vpython}, '-c',
+        'import legacy_ledger; print(legacy_ledger.__version__)' );
     $rc == 0 or fail("legacy_ledger cannot be imported in the venv:\n$out");
     chomp $out;
     print "builder: legacy_ledger $out importable\n";
 
     return 1 if ( $ENV{LEGACY_NO_QT} // '' ) eq '1';
-    ( $rc, $out ) = venv_capture( $ctx, $ctx->{vpython}, '-c', 'import PySide6; print(PySide6.__version__)' );
+    ( $rc, $out ) = venv_capture( $ctx, $ctx->{vpython}, '-c',
+        'import PySide6; print(PySide6.__version__)' );
     $rc == 0 or fail("PySide6 cannot be imported in the venv:\n$out");
     chomp $out;
     print "builder: PySide6 $out importable\n";
@@ -248,7 +274,9 @@ sub remove_venv {
     my $venv = $ctx->{venv};
     return 1 unless -e $venv || -l $venv;
     fail("refusing to remove $venv")
-      if -l $venv || basename($venv) ne '.venv' || index( $venv, "$ctx->{root}/bindings/" ) != 0;
+      if -l $venv
+      || basename($venv) ne '.venv'
+      || index( $venv, "$ctx->{root}/bindings/" ) != 0;
     remove_tree( $venv, { error => \my $errors } );
     fail("could not remove $venv") if $errors && @$errors;
     return 1;
@@ -298,11 +326,13 @@ sub capture {
 sub require_unprivileged {
     return 1 if $> != 0;
     if ( ( $ENV{LEGACY_ALLOW_ROOT} // '' ) eq '1' ) {
-        print STDERR "builder: WARNING running as root (LEGACY_ALLOW_ROOT=1): the files will be owned by root\n";
+        print STDERR
+"builder: WARNING running as root (LEGACY_ALLOW_ROOT=1): the files will be owned by root\n";
         return 1;
     }
-    fail( "refusing to run as root: the files would be owned by root.\n"
-          . "builder: run as a normal user; no privilege is needed (LEGACY_ALLOW_ROOT=1 overrides, e.g. in a throw-away container)" );
+    fail(   "refusing to run as root: the files would be owned by root.\n"
+          . "builder: run as a normal user; no privilege is needed (LEGACY_ALLOW_ROOT=1 overrides, e.g. in a throw-away container)"
+    );
 }
 
 # Same inputs, same build: nothing inherited from the caller may change it.
@@ -326,7 +356,7 @@ sub valid_command {
 sub find_in_path {
     my ($name) = @_;
     for my $dir ( split /:/, $ENV{PATH} // '' ) {
-        next if $dir eq '';
+        next                if $dir eq '';
         return "$dir/$name" if -f "$dir/$name" && -x _;
     }
     return;
@@ -355,7 +385,9 @@ sub ensure_writable_dirs {
     my @dirs = @_;
     make_path(@dirs);
     for my $dir (@dirs) {
-        -d $dir && -w $dir or fail("$dir is not writable by this user; fix the ownership of the tree");
+        -d $dir && -w $dir
+          or fail(
+            "$dir is not writable by this user; fix the ownership of the tree");
     }
     return 1;
 }
@@ -369,10 +401,11 @@ sub require_artifact {
 
 # Out-of-tree CMake build in a private temporary directory, removed afterwards.
 sub cmake_build {
-    my (%a) = @_;    # source, prefix, cmake, defines => { NAME => value }
-    my $build = tempdir( "$a{prefix}_XXXXXX", TMPDIR => 1, CLEANUP => 1 );
+    my (%a)     = @_;    # source, prefix, cmake, defines => { NAME => value }
+    my $build   = tempdir( "$a{prefix}_XXXXXX", TMPDIR => 1, CLEANUP => 1 );
     my @defines = map { "-D$_=$a{defines}{$_}" } sort keys %{ $a{defines} };
-    run( $a{cmake}, '-S', $a{source}, '-B', $build, @defines, '-DCMAKE_BUILD_TYPE=Release' );
+    run( $a{cmake}, '-S', $a{source}, '-B', $build, @defines,
+        '-DCMAKE_BUILD_TYPE=Release' );
     run( $a{cmake}, '--build', $build, '-j' );
     return 1;
 }
@@ -381,9 +414,10 @@ sub cmake_build {
 sub run_test_binary {
     my ( $root, $name ) = @_;
     -x "$root/bin/$name" or fail("bin/$name not found - run the build first");
-    chdir "$root/bin" or fail("chdir $root/bin: $!");
+    chdir "$root/bin"    or fail("chdir $root/bin: $!");
     return run("./$name");
 }
+
 # END shared-builder-helpers
 
 # ------------------------------------------------------------------ go

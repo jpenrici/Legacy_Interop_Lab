@@ -146,7 +146,7 @@ my @COMPONENTS = (
         },
         requires => [
             'bridge/builder.pl',       'bridge/CMakeLists.txt',
-            'bridge/include/brigde.h', 'bridge/src/bridge.c',
+            'bridge/include/bridge.h', 'bridge/src/bridge.c',
             'bridge/tests/main.c'
         ],
         artifacts => [
