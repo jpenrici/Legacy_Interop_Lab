@@ -71,8 +71,7 @@ if(Lua_FOUND)
                C_VISIBILITY_PRESET hidden # only luaopen_* is exported
                LIBRARY_OUTPUT_DIRECTORY "${LUA_DIST_DIR}"
                BUILD_WITH_INSTALL_RPATH ON
-               # INSTALL_RPATH "${LEGACY_ROOT}/lib")
-               INSTALL_RPATH "\$ORIGIN/../../lib")
+               INSTALL_RPATH "${LEGACY_ROOT}/lib")
 
   # --- Copy (binding.lua and tests/*) to the dist/ folder. --------------------
   add_custom_target(
