@@ -129,7 +129,7 @@ my @COMPONENTS = (
         },
     },
 
-    # --- C ---------------------------------------------------------
+    # --- C ----------------------------------------------------------
     {
         name    => 'bridge',
         title   => 'C bridge',
@@ -158,7 +158,7 @@ my @COMPONENTS = (
           sub { my %e; $e{CC} = $_[0]{cc} if defined $_[0]{cc}; return \%e },
     },
 
-    # --- C++ -------------------------------------------------------
+    # --- C++ --------------------------------------------------------
     {
         name    => 'extender',
         title   => 'C++ extender',
@@ -195,10 +195,60 @@ my @COMPONENTS = (
           sub { my %e; $e{CXX} = $_[0]{cxx} if defined $_[0]{cxx}; return \%e },
     },
 
-    # --- Lua ---------------------------------------------------------
-    # TO DO
+    # --- Lua --------------------------------------------------------
+    {
+        name    => 'lua',
+        title   => 'Lua bindings',
+        builder => 'bindings/lua/builder.pl',
+        depends => ['extender'],
+        tools   => {
+            cc => {
+                min    => 14,
+                label  => 'lua compiler',
+                option => 'cc',
+                apt    => 'gcc-14'
+            },
+            cmake => '3.25',
+            lua   => {
+                version => '5.4',
+                label   => 'lua',
+                option  => 'lua',
+                apt     => 'lua lua5.4 liblua5.4-dev'
+            },
+        },
+        requires => [
+            'bindings/lua/builder.pl',      'bindings/lua/CMakeLists.txt',
+            'bindings/lua/src/binding.lua', 'bindings/lua/src/lua_extender.c',
+            'bindings/lua/tests/main.lua'
+        ],
+        artifacts => [
+            {
+                path  => 'bin/dist/lua/lua_extender_core.so',
+                label => 'lua module'
+            },
+            {
+                globs   => ['bin/dist/lua/binding.lua'],
+                label   => 'lua scripts',
+                missing => 'bin/dist/lua/binding.lua not built yet'
+            },
+        ],
+        run => [
+            {
+                name => 'lua_tests',
+                via  => 'builder-test',
+                ok   => [0],
+                warn => {}
+            }
+        ],
+        env => sub {
+            my %e;
+            $e{CC}  = $_[0]{cc}  if defined $_[0]{cc};
+            $e{LUA} = $_[0]{lua} if defined $_[0]{lua};
+            return \%e;
+        },
+    },
 
-    # --- Python ------------------------------------------------------
+    # --- Python -----------------------------------------------------
     {
         name    => 'python',
         title   => 'Python bindings',

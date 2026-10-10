@@ -3,37 +3,46 @@
 
 =head1 NAME
 
-builder.pl - build and test the Lua bindings
+builder.pl - build and test the Lua 5.4 bindings, C<bin/dist/lua>
 
 =head1 SYNOPSIS
 
-  perl bindings/lua/builder.pl [all|build|test|clean]       (default: all)
+  perl bindings/lua/builder.pl [all|build|test|clean]        (default: all)
 
-  CC=gcc-14 perl bindings/lua/builder.pl
+  CC=gcc-14 LUA=lua5.4 perl bindings/lua/builder.pl
 
 =head1 DESCRIPTION
 
-Builds, from C<bindings/lua/> into the portable part of the tree:
+Builds, from C<bindings/lua/> into a folder that runs as it is:
 
-  bin/bindings/dist   its tests, library and binding.
+  bin/dist/lua/lua_extender_core.so   native Lua module (C) over lib_cpp_api.so
+  bin/dist/lua/binding.lua            the high-level API
+  bin/dist/lua/main.lua               the smoke test (tests/*)
 
-Requires ...
+The module finds C<lib/> through C<$ORIGIN/../../lib>, so the tree can be moved.
+The smoke test runs from C<legacy/bin>, like every other test, with the Lua
+environment variables discarded (the script sets its own module paths).
+
+Requires C<lib/lib_cpp_api.so> (C<perl extender/builder.pl>), the Lua 5.4
+headers (Debian: C<liblua5.4-dev>), CMake 3.25 or newer and B<GCC 14 or newer>.
+The tests also need C<bin/cobol_app> and a Lua 5.4 interpreter (C<lua5.4>).
 
 =over 4
 
-=item B<build>  configure and compile only
+=item B<build>  configure and compile the module, copy the scripts
 
-=item B<test>   run bin/bindings/lua/dist/main.lua (must be built)
+=item B<test>   run bin/dist/lua/main.lua (must be built)
 
 =item B<all>    build, then test
 
-=item B<clean>  remove the files above (data is never touched)
+=item B<clean>  remove what this builder put in bin/dist/lua (data is never touched)
 
 =back
 
 =head1 ENVIRONMENT
 
   CC=gcc-14                 the C compiler (GCC >= 14)
+  LUA=lua5.4                the interpreter used by the test (must be Lua 5.4)
   LEGACY_ALLOW_ROOT=1       allow running as root (refused by default)
 
 Compiler flags and library paths inherited from the caller are discarded.
@@ -69,11 +78,28 @@ sub main {
     return 0;
 }
 
+# Mode from the command line: all | build | test | clean.
+sub parse_args {
+    my @args = @_;
+    my $mode = @args ? shift @args : 'all';
+    return $mode if $mode =~ /^(?:all|build|test|clean)$/ && !@args;
+    print STDERR "usage: builder.pl [all|build|test|clean]\n";
+    exit 2;
+}
+
 # ----------------------------------------------------------------- modes
 
+# Removes the files this builder put in bin/dist/lua (never other bindings'),
+# and the folders only if that left them empty.
 sub do_clean {
     my ($ctx) = @_;
-    unlink $ctx->{test}, $ctx->{library}, $ctx->{binding};
+    my @ours = (
+        $ctx->{module}, $ctx->{script},
+        map { "$ctx->{dist}/" . basename($_) } glob("$ctx->{here}/tests/*")
+    );
+    unlink @ours;
+    rmdir $ctx->{dist};
+    rmdir "$ctx->{root}/bin/dist";
     print "builder: cleaned\n";
     return 0;
 }
@@ -82,19 +108,20 @@ sub do_build {
     my ($ctx) = @_;
     cmake_build(
         source  => $ctx->{here},
-        prefix  => 'bindings_lua',
+        prefix  => 'legacy_lua',
         cmake   => $ctx->{cmake},
         defines => { CMAKE_C_COMPILER => $ctx->{cc} },
     );
-    print "builder: create bindigns/lua/dist/";
-    print "builder: copy binding.lua and test/ to dist/";
-    print "builder: built bindigns/lua/dist/lua_extender_core.so\n";
+    print
+"builder: built bin/dist/lua (lua_extender_core.so, binding.lua, main.lua)\n";
     return 0;
 }
 
 sub do_test {
     my ($ctx) = @_;
-    return run_test_script( $ctx->{root}, 'bindings/lua/dist/main.lua' );
+    chdir $ctx->{bin} or fail("chdir $ctx->{bin}: $!");    # like any other test
+    local %ENV = lua_env();
+    return run( $ctx->{lua}, 'dist/lua/main.lua' );
 }
 
 # ----------------------------------------------------- component specifics
@@ -102,28 +129,39 @@ sub do_test {
 sub build_context {
     my $here = abs_path( dirname(__FILE__) );
     my $root = abs_path("$here/../..");
+    my $dist = "$root/bin/dist/lua";
     return {
-        here    => $here,
-        root    => $root,
-        bin     => "$root/bin",
-        lib     => "$root/lib",
-        test    => "$root/bin/dist/lua/main.lua",
-        binding => "$root/bin/dist/lua/binding.lua",
-        library => "$root/bin/dist/lua/lua_extender_core.so",
+        here   => $here,
+        root   => $root,
+        bin    => "$root/bin",
+        dist   => $dist,
+        module => "$dist/lua_extender_core.so",
+        script => "$dist/binding.lua",
     };
 }
 
-# Building needs the C++ extender.
+# Building needs the extender; testing also needs COBOL, the module and Lua.
 sub check_prerequisites {
     my ( $ctx, $mode ) = @_;
     require_artifact( $ctx->{root}, 'lib/lib_cpp_api.so',
         'perl extender/builder.pl' );
-    require_artifact( $ctx->{root}, 'bin/cobol_app', 'perl cobol/builder.pl' );
-    return 1 if $mode eq 'test';
-    return ensure_writable_dirs( $ctx->{bin}, $ctx->{lib} );
+    if ( $mode ne 'build' ) {
+        require_artifact( $ctx->{root}, 'bin/cobol_app',
+            'perl cobol/builder.pl' );
+        locate_lua($ctx);
+    }
+    if ( $mode eq 'test' ) {
+        require_artifact(
+            $ctx->{root},
+            'bin/dist/lua/lua_extender_core.so',
+            'perl bindings/lua/builder.pl build'
+        );
+        return 1;
+    }
+    return ensure_writable_dirs( $ctx->{bin} );
 }
 
-# cmake, and a GCC >= 14.
+# cmake, and a GCC >= 14 (the Lua headers are looked for by CMake itself).
 sub find_toolchain {
     my ($ctx) = @_;
     $ctx->{cmake} = find_in_path('cmake') or fail('cmake not found');
@@ -140,20 +178,39 @@ sub find_toolchain {
     return 1;
 }
 
+# The interpreter must be Lua 5.4, the version the module is compiled against.
+sub locate_lua {
+    my ($ctx)      = @_;
+    my @candidates = grep { defined && length } ( $ENV{LUA}, qw(lua5.4 lua) );
+    for my $cmd (@candidates) {
+        next unless valid_command($cmd);
+        my $path = $cmd =~ m{/} ? $cmd : find_in_path($cmd);
+        next unless $path && -x $path;
+        my ( $rc, $out ) = capture( $path, '-v' );
+        next unless $rc == 0 && $out =~ /^Lua 5\.4\b/;
+        $ctx->{lua} = $path;
+        return 1;
+    }
+    fail(   'Lua 5.4 interpreter not found (tried: '
+          . join( ' ', @candidates )
+          . '); apt install lua5.4 or set LUA=/path/to/lua5.4' );
+}
+
+# Lua reads these at start-up (LUA_INIT even runs code): the test must not
+# depend on, or be changed by, the caller's.
+sub lua_env {
+    my %env = %ENV;
+    delete @env{
+        qw(LUA_INIT LUA_INIT_5_4 LUA_PATH LUA_PATH_5_4 LUA_CPATH LUA_CPATH_5_4)
+    };
+    return %env;
+}
+
 # ---------------------------------------------------------------- shared
 
 # BEGIN shared-builder-helpers
 # Identical in every builder (cobol, bridge, extender): `setup.pl check`
 # verifies it. Safe by construction: no shell, no root, no inherited flags.
-
-# Mode from the command line: all | build | test | clean.
-sub parse_args {
-    my @args = @_;
-    my $mode = @args ? shift @args : 'all';
-    return $mode if $mode =~ /^(?:all|build|test|clean)$/ && !@args;
-    print STDERR "usage: builder.pl [all|build|test|clean]\n";
-    exit 2;
-}
 
 sub fail { print STDERR "builder: @_\n"; exit 1 }
 
@@ -268,12 +325,12 @@ sub cmake_build {
     return 1;
 }
 
-# Runs ./NAME from dist/, like any user would.
-sub run_test_script {
+# Runs ./NAME from legacy/bin, like any user would.
+sub run_test_binary {
     my ( $root, $name ) = @_;
-
-    # TO DO
-    # return run("./$name");
+    -x "$root/bin/$name" or fail("bin/$name not found - run the build first");
+    chdir "$root/bin"    or fail("chdir $root/bin: $!");
+    return run("./$name");
 }
 
 # END shared-builder-helpers

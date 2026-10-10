@@ -100,8 +100,7 @@ sub cmd_build {
     my $n     = 0;
     for my $c (@order) {
         my %env       = ( %{ $c->{env}->($ctx) }, base_env() );
-        my $toolchain = join ' ',
-          map { "$_=$env{$_}" }
+        my $toolchain = join ' ', map { "$_=$env{$_}" }
           grep { $_ ne 'LEGACY_ALLOW_ROOT' } sort keys %env;
         step( ++$n, scalar(@order),
             "$c->{title}: $c->{builder}"

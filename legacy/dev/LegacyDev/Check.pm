@@ -78,6 +78,7 @@ sub run_checks {
         check_compiler( \%ctx, 'cc', $tools->{cc}, $opt )   if $tools->{cc};
         check_compiler( \%ctx, 'cxx', $tools->{cxx}, $opt ) if $tools->{cxx};
         check_python( \%ctx, $tools->{python}, $opt )       if $tools->{python};
+        check_lua( \%ctx, $tools->{lua}, $opt )             if $tools->{lua};
     }
 
     check_build_tools();
@@ -204,7 +205,8 @@ sub check_compiler {
 sub check_python {
     my ( $ctx, $spec, $opt ) = @_;
     my @candidates =
-      grep { defined && length } ( $opt->{python}, $ENV{PYTHON}, 'python3' );
+      $opt->{python} ? ( $opt->{python} ) : grep { defined && length }
+      ( $ENV{PYTHON}, 'python3' );    # explicit = exclusive
     for my $cmd (@candidates) {
         my $path = can_run($cmd) or next;
         my ( $rc, $out ) = capture_status( $path, '-c',
@@ -232,6 +234,61 @@ sub check_python {
         "apt install $spec->{apt}  (or: --$spec->{option} CMD)"
     );
     return 0;
+}
+
+# A Lua interpreter of exactly $spec->{version} (the one the module is compiled
+# against) and its development headers (Debian: liblua5.4-dev).
+sub check_lua {
+    my ( $ctx, $spec, $opt ) = @_;
+    my @candidates = $opt->{lua} ? ( $opt->{lua} ) : grep { defined && length }
+      ( $ENV{LUA}, qw(lua5.4 lua) );    # explicit = exclusive
+    my $found_interpreter = 0;
+    for my $cmd (@candidates) {
+        my $path = can_run($cmd) or next;
+        my ( $rc, $out ) = capture_status( $path, '-v' );
+        next unless $rc == 0 && $out =~ /^Lua (\d+\.\d+(?:\.\d+)?)/;
+        my $found = $1;
+        next unless $found =~ /^\Q$spec->{version}\E(?:\.|$)/;
+        $ctx->{lua} = $path;
+        report( ok => $spec->{label}, "$cmd (Lua $found)" );
+        $found_interpreter = 1;
+        last;
+    }
+    report(
+        fail => $spec->{label},
+        "no Lua $spec->{version} interpreter found",
+        "apt install $spec->{apt}  (or: --$spec->{option} CMD)"
+    ) unless $found_interpreter;
+
+    my $headers = lua_headers( $spec->{version} );
+    if ($headers) { report( ok => 'lua headers', $headers ) }
+    else {
+        report(
+            fail => 'lua headers',
+            "Lua $spec->{version} development files not found",
+            "apt install liblua$spec->{version}-dev"
+        );
+    }
+    return $found_interpreter && $headers ? 1 : 0;
+}
+
+# Directory with a lua.h of exactly this version, or undef.
+sub lua_headers {
+    my ($version) = @_;
+    my ( $major, $minor ) = split /\./, $version;
+    for my $dir (
+        "/usr/include/lua$version",       '/usr/include',
+        "/usr/local/include/lua$version", '/usr/local/include'
+      )
+    {
+        open( my $fh, '<', "$dir/lua.h" ) or next;
+        my $text = do { local $/; <$fh> };
+        close $fh;
+        return $dir
+          if $text =~ /#define\s+LUA_VERSION_MAJOR\s+"$major"/
+          && $text =~ /#define\s+LUA_VERSION_MINOR\s+"$minor"/;
+    }
+    return;
 }
 
 # cmake (the highest version any component asks for), make, ldd.
@@ -296,8 +353,10 @@ sub check_project_files {
 
     my @nodir = grep { !-d "$root/$_" } data_dirs();
     @nodir
-      ? report( warn => 'directories',
-        "missing (created on build/run): @nodir" )
+      ? report(
+        warn => 'directories',
+        "missing (created on build/run): @nodir"
+      )
       : report( ok => 'directories', 'bin lib data/* present' );
     for my $d (qw(bin lib data/store/cobol)) {
         report(
@@ -323,7 +382,11 @@ sub check_build_state {
     for my $c ( components() ) {
         for my $a ( @{ $c->{artifacts} } ) {
             if ( $a->{globs} ) {
-                my @files = map { glob("$root/$_") } @{ $a->{globs} };
+                my @files =
+                  grep { -e $_ }
+                  map  { glob("$root/$_") }
+                  @{ $a->{globs} }
+                  ;    # glob() returns a wildcard-less pattern as is
                 @files
                   ? report(
                     ok => $a->{label},

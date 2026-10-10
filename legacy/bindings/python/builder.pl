@@ -145,8 +145,8 @@ sub build_context {
     return {
         here         => $here,
         root         => $root,
-        venv         => "$root/.venv",
-        vpython      => "$root/.venv/bin/python",
+        venv         => "$here/.venv",
+        vpython      => "$here/.venv/bin/python",
         src          => "$here/src",
         tests        => "$here/tests",
         example      => "$here/examples/table_view.py",

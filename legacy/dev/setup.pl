@@ -7,12 +7,13 @@ setup.pl - check, prepare, build and run the whole legacy project
 
 =head1 SYNOPSIS
 
-  setup.pl [all] [options]        check, build, run (default)
-  setup.pl check [options]        verify dependencies only (changes nothing)
-  setup.pl prepare [options]      install missing tools (runs prepare_legacy_env.pl)
-  setup.pl build [options]        run every component's builder, in dependency order
-  setup.pl run [NAME...]          run the executables in legacy/bin and the Python tests
-  setup.pl clean                  remove everything the builders produced
+  setup.pl [help|--help|-h]     help, usage (default)
+  setup.pl all [options]        check, build, run
+  setup.pl check [options]      verify dependencies only (changes nothing)
+  setup.pl prepare [options]    install missing tools (runs prepare_legacy_env.pl)
+  setup.pl build [options]      run every component's builder, in dependency order
+  setup.pl run [NAME...]        run the executables in legacy/bin and the other tests
+  setup.pl clean                remove everything the builders produced
 
   Options:
     --gnucobol-version V   GnuCOBOL to use/install: 3.2 or 3.1.2 (default: first found)
@@ -22,9 +23,11 @@ setup.pl - check, prepare, build and run the whole legacy project
                            a GnuCOBOL exists in /opt
     --strict               treat every deviation from the project design as a failure
     --cobol-cc CMD         C compiler cobc must call (default: gcc-13 when present)
-    --bridge-cc CMD        C compiler for the bridge, GCC >= 14 (default: auto)
+    --cc CMD               C compiler for the bridge and the Lua module, GCC >= 14
+                           (default: auto; --bridge-cc is an alias)
     --extender-cxx CMD     C++ compiler for the extender, g++ >= 14 (default: auto)
     --python CMD           Python >= 3.10 with venv for the bindings (default: python3)
+    --lua CMD              Lua 5.4 interpreter for the Lua bindings (default: lua5.4)
     --prepare              in "all": install missing tools instead of stopping
     --priv METHOD          how to get root when preparing: auto, sudo, su, print
     --root-owned           GnuCOBOL prefix owned by root (see gnucobol_install.pl)
@@ -91,7 +94,7 @@ options you pass. It may need root; see C<--priv>.
 =item B<build>
 
 Runs each component's C<builder.pl build> in dependency order (COBOL, C
-bridge, C++ extender, Python bindings) with the toolchain found by C<check>.
+bridge, C++ extender, and bindings) with the toolchain found by C<check>.
 The Python builder creates a venv and downloads PySide6 into it (about 85 MB,
 once); C<LEGACY_NO_QT=1 perl dev/setup.pl build> skips that.
 
@@ -103,7 +106,7 @@ the tree is self-contained. Before that it checks with C<ldd> that every
 library resolves inside C<legacy/lib>. Exit codes of C<legacy_app>: 0 ok,
 1 input file, 2 output file, 3 done with rejected lines, 4 overflow. Naming
 executables (C<setup.pl run legacy_app>) runs only those. The test programs
-regenerate C<data/store/cobol/cb_data.dat>. The Python bindings have no
+regenerate C<data/store/cobol/cb_data.dat>. The bindings have no
 native executable: their tests (C<python_tests>) run through the builder's
 C<test> mode, from the same directory.
 
@@ -127,13 +130,15 @@ run this script again).
 
 =head1 EXAMPLES
 
-  perl dev/setup.pl                          # check + build + run
+  perl dev/setup.pl                          # help
+  perl dev/setup.pl all                      # check + build + run
   perl dev/setup.pl check
   perl dev/setup.pl all --prepare --priv su  # install what is missing first
   perl dev/setup.pl build --cobol-home /opt/gnucobol-3.1.2
   perl dev/setup.pl all --system-cobol       # use the apt GnuCOBOL, with warnings
   perl dev/setup.pl check --system-cobol --strict
   perl dev/setup.pl run legacy_extender_test
+  perl dev/setup.pl run lua_tests
   perl dev/setup.pl run python_tests
   LEGACY_NO_QT=1 perl dev/setup.pl       # everything, without downloading PySide6
 
@@ -163,18 +168,23 @@ sub main {
 # Command line -> ( command, options hash, executable names for "run" ).
 sub parse_cli {
     my @args = @_;
+
+    # Help
+    pod2usage( -exitval => 0, -verbose => 1 ) unless @args;
+    pod2usage( -exitval => 0, -verbose => 1 ) if $args[0] eq 'help';
+
     my %opt;
 
     GetOptionsFromArray(
         \@args,               \%opt,
         'gnucobol-version=s', 'cobol-home=s',
-        'cobol-cc=s',         'bridge-cc=s',
+        'cobol-cc=s',         'cc|bridge-cc=s',
         'extender-cxx=s',     'python=s',
-        'system-cobol',       'strict',
-        'prepare',            'priv=s',
-        'root-owned',         'allow-root',
-        'check!',             'yes|y',
-        'help|h',
+        'lua=s',              'system-cobol',
+        'strict',             'prepare',
+        'priv=s',             'root-owned',
+        'allow-root',         'check!',
+        'yes|y',              'help|h',
     ) or pod2usage( -exitval => 2, -verbose => 0 );
     pod2usage( -exitval => 0, -verbose => 1 ) if $opt{help};
 

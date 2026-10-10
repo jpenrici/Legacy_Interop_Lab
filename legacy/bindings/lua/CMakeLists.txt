@@ -1,10 +1,17 @@
 # legacy/bindings/lua/CMakeLists.txt
+#
+# Produces legacy/bin/dist/lua, a folder that runs as it is:
+# lua_extender_core.so, the native Lua 5.4 module (C) over lib_cpp_api.so;
+# binding.lua, the high-level API; and main.lua in the tests/* the smoke test.
+#
+# Use the C++ extender (lib/lib_cpp_api.so) is built by its own project and only
+# imported here.
 
-cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
 
 project(lua_bindings LANGUAGES C)
 
-# Requires GCC 14 or newer.
+# Requires GCC 14 or newer, like the other native components.
 if(NOT CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_VERSION
                                              VERSION_LESS 14)
   message(
@@ -61,21 +68,23 @@ if(Lua_FOUND)
     lua_extender_core
     PROPERTIES PREFIX "" # Remove the prefix 'lib' from C for the Lua directly
                          # (ex: lua_extender_core.so)
+               C_VISIBILITY_PRESET hidden # only luaopen_* is exported
                LIBRARY_OUTPUT_DIRECTORY "${LUA_DIST_DIR}"
                BUILD_WITH_INSTALL_RPATH ON
-               INSTALL_RPATH "${LEGACY_ROOT}/lib")
-
-  target_link_options(lua_extender_core PRIVATE ${EXT_STATIC_RUNTIME})
+               # INSTALL_RPATH "${LEGACY_ROOT}/lib")
+               INSTALL_RPATH "\$ORIGIN/../../lib")
 
   # --- Copy (binding.lua and tests/*) to the dist/ folder. --------------------
   add_custom_target(
     lua_prepare_dist ALL
-    COMMAND
-      ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/src/binding.lua"
-      "${LUA_DIST_DIR}/binding.lua"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${LUA_DIST_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/binding.lua" "${LUA_DIST_DIR}"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_CURRENT_SOURCE_DIR}/tests" "${LUA_DIST_DIR}"
-    DEPENDS lua_extender_core "${CMAKE_CURRENT_SOURCE_DIR}/src/binding.lua")
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/binding.lua"
+    COMMENT "Copying the Lua scripts to ${LUA_DIST_DIR}")
+  add_dependencies(lua_prepare_dist lua_extender_core)
 
 else()
   message(

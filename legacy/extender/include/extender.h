@@ -1,7 +1,7 @@
 // legacy/extender/include/extender.h
 
 /*
- * legacy_extender.h - C ABI of the legacy extender (lib/lib_cpp_api.so)
+ * extender.h - C ABI of the legacy extender (lib/lib_cpp_api.so)
  *
  * This is the contract for bindings (Python ctypes, Rust, Node, ...): plain C,
  * flat structs of fixed-size integers, no C++ types, no exceptions, no global
