@@ -85,7 +85,7 @@ sub main {
     return 0;
 }
 
-# Mode from the command line: all | build | test | clean.
+# Mode from the command line: all | build | test | clean | example.
 sub parse_args {
     my @args = @_;
     my $mode = @args ? shift @args : 'all';

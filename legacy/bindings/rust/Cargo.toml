@@ -1,0 +1,12 @@
+[package]
+name = "legacy_ledger_rust"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "ledger_rust"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# No external dependencies required for pure FFI,
+# keeping the binary lean and aligned with the project's design.
