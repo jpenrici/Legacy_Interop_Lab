@@ -74,7 +74,7 @@ mod tests {
     fn test_ledger_pipeline() {
         // Run the ledger refresh (executes COBOL/Bridge)
         let refresh_result = Ledger::refresh();
-        println!("Refresh result: {:?}", refresh_result);
+        println!("\nRefresh result: {:?}\n", refresh_result);
 
         // Tests fetching the monthly series with a 3-month window
         match Ledger::monthly_series(3) {
@@ -89,12 +89,13 @@ mod tests {
                         month.year, month.month, month.balance_cents
                     );
                 }
+                println!();
             }
-            Err(e) => {
+            Err(err) => {
                 // If it fails due to missing data/uninitialized ledger, we log it in the test
                 println!(
                     "Notice while fetching monthly series (may require initial data): {:?}",
-                    e
+                    err
                 );
             }
         }

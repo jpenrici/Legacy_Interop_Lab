@@ -248,6 +248,42 @@ my @COMPONENTS = (
         },
     },
 
+    # --- Rust -------------------------------------------------------
+    {
+        name    => 'rust',
+        title   => 'Rust bindings',
+        builder => 'bindings/rust/builder.pl',
+        depends => ['extender'],
+        tools   => {
+            rust => {
+                version => '1.99.0',
+                label   => 'rust',
+                option  => 'rust',
+                apt     => 'rust-all'
+            },
+        },
+        requires => [
+            'bindings/rust/builder.pl', 'bindings/rust/build.rs',
+            'bindings/rust/Cargo.toml', 'bindings/rust/src/ffi.rs',
+            'bindings/rust/src/lib.rs'
+        ],
+
+        #artifacts => [],
+        run => [
+            {
+                name => 'rust_tests',
+                via  => 'builder-test',
+                ok   => [0],
+                warn => {}
+            }
+        ],
+        env => sub {
+            my %e;
+            $e{RUST} = $_[0]{rust} if defined $_[0]{rust};
+            return \%e;
+        },
+    },
+
     # --- Python -----------------------------------------------------
     {
         name    => 'python',

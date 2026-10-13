@@ -66,6 +66,8 @@ sub parse_args {
     exit 2;
 }
 
+# ----------------------------------------------------------------- modes
+
 sub do_clean {
     my ($ctx) = @_;
     chdir $ctx->{here} or fail("chdir $ctx->{here}: $!");
@@ -94,6 +96,8 @@ sub do_test {
 
     return run( 'cargo', 'test', "--", "--nocapture" );
 }
+
+# ----------------------------------------------------- component specifics
 
 sub build_context {
     my $here = abs_path( dirname(__FILE__) );

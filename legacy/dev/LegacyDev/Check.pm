@@ -79,6 +79,7 @@ sub run_checks {
         check_compiler( \%ctx, 'cxx', $tools->{cxx}, $opt ) if $tools->{cxx};
         check_python( \%ctx, $tools->{python}, $opt )       if $tools->{python};
         check_lua( \%ctx, $tools->{lua}, $opt )             if $tools->{lua};
+        check_rust( \%ctx, $tools->{rust}, $opt )           if $tools->{rust};
     }
 
     check_build_tools();
@@ -270,6 +271,32 @@ sub check_lua {
         );
     }
     return $found_interpreter && $headers ? 1 : 0;
+}
+
+sub check_rust {
+    my ( $ctx, $spec, $opt ) = @_;
+    my @candidates =
+      $opt->{rust} ? ( $opt->{rust} ) : grep { defined && length }
+      ( $ENV{RUST}, 'rustc' );
+    my $found_interpreter = 0;
+    for my $cmd (@candidates) {
+        my $path = can_run($cmd) or next;
+        my ( $rc, $out ) = capture_status( $path, '--version' );
+        next unless $rc == 0 && $out =~ /^rustc (\d+\.\d+(?:\.\d+)?)/;
+        my $found = $1;
+        next unless $found =~ /^\Q$spec->{version}\E(?:\.|$)/;
+        $ctx->{rust} = $path;
+        report( ok => $spec->{label}, "$cmd (Rust $found)" );
+        $found_interpreter = 1;
+        last;
+    }
+    report(
+        fail => $spec->{label},
+        "no Rust $spec->{version} interpreter found",
+        "apt install $spec->{apt}  (or: --$spec->{option} CMD)"
+    ) unless $found_interpreter;
+
+    return $found_interpreter ? 1 : 0;
 }
 
 # Directory with a lua.h of exactly this version, or undef.
