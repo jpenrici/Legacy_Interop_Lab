@@ -284,6 +284,10 @@ my @COMPONENTS = (
         },
     },
 
+    # --- Free Pascal ------------------------------------------------
+    # Not implemented in the setup.
+    # Run perl bindings/freepascal/builder.pl directly!
+
     # --- Python -----------------------------------------------------
     {
         name    => 'python',

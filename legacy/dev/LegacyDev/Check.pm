@@ -80,6 +80,10 @@ sub run_checks {
         check_python( \%ctx, $tools->{python}, $opt )       if $tools->{python};
         check_lua( \%ctx, $tools->{lua}, $opt )             if $tools->{lua};
         check_rust( \%ctx, $tools->{rust}, $opt )           if $tools->{rust};
+
+        # Not implemented! Reserved only.
+        check_freepascal( \%ctx, $tools->{freepascal}, $opt )
+          if $tools->{freepascal};
     }
 
     check_build_tools();
@@ -273,6 +277,25 @@ sub check_lua {
     return $found_interpreter && $headers ? 1 : 0;
 }
 
+# Directory with a lua.h of exactly this version, or undef.
+sub lua_headers {
+    my ($version) = @_;
+    my ( $major, $minor ) = split /\./, $version;
+    for my $dir (
+        "/usr/include/lua$version",       '/usr/include',
+        "/usr/local/include/lua$version", '/usr/local/include'
+      )
+    {
+        open( my $fh, '<', "$dir/lua.h" ) or next;
+        my $text = do { local $/; <$fh> };
+        close $fh;
+        return $dir
+          if $text =~ /#define\s+LUA_VERSION_MAJOR\s+"$major"/
+          && $text =~ /#define\s+LUA_VERSION_MINOR\s+"$minor"/;
+    }
+    return;
+}
+
 sub check_rust {
     my ( $ctx, $spec, $opt ) = @_;
     my @candidates =
@@ -299,23 +322,10 @@ sub check_rust {
     return $found_interpreter ? 1 : 0;
 }
 
-# Directory with a lua.h of exactly this version, or undef.
-sub lua_headers {
-    my ($version) = @_;
-    my ( $major, $minor ) = split /\./, $version;
-    for my $dir (
-        "/usr/include/lua$version",       '/usr/include',
-        "/usr/local/include/lua$version", '/usr/local/include'
-      )
-    {
-        open( my $fh, '<', "$dir/lua.h" ) or next;
-        my $text = do { local $/; <$fh> };
-        close $fh;
-        return $dir
-          if $text =~ /#define\s+LUA_VERSION_MAJOR\s+"$major"/
-          && $text =~ /#define\s+LUA_VERSION_MINOR\s+"$minor"/;
-    }
-    return;
+sub check_freepascal {
+
+    # Not implemented! Requires declaration in 'LegacyDev/Components.pm' first!
+    return 0;
 }
 
 # cmake (the highest version any component asks for), make, ldd.
