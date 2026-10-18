@@ -12,4 +12,4 @@ This experiment simulates a legacy application: a monthly general ledger written
 
 ## Details
 
-Details can be found in the developer guide: [legacy/dev/README.md](https://github.com/jpenrici/Legacy_Interop_Lab/edit/main/README.md)
+Details can be found in the developer guide: [legacy/dev/README.md](https://github.com/jpenrici/Legacy_Interop_Lab/blob/main/legacy/dev/README.md)
